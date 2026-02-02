@@ -1,0 +1,44 @@
+[
+  {
+    "tenant_id": "tenant_001",
+    "project_id": "proj_jobforge",
+    "id": "ticket_001",
+    "subject": "API key authentication failing",
+    "body": "I am trying to submit a job using the API but getting 401 errors. My API key is: sk-jobforge-abc123xyz. I am sending it in the X-API-Key header. What am I doing wrong?",
+    "status": "open",
+    "priority": "high",
+    "customer_email": "user@example.com",
+    "customer_name": "John Doe",
+    "created_at": "2024-01-15T10:30:00Z",
+    "tags": ["api", "authentication"],
+    "metadata": {}
+  },
+  {
+    "tenant_id": "tenant_001",
+    "project_id": "proj_jobforge",
+    "id": "ticket_002",
+    "subject": "Job stuck in queued state for 2 hours",
+    "body": "Critical pipeline is blocked. Job ID: job_987654321 has been queued for over 2 hours. This is urgent - our production deployment is stuck. Please help immediately!",
+    "status": "open",
+    "priority": "urgent",
+    "customer_email": "ops@company.com",
+    "customer_name": "Sarah Ops",
+    "created_at": "2024-01-15T08:00:00Z",
+    "tags": ["workflow", "critical"],
+    "metadata": {}
+  },
+  {
+    "tenant_id": "tenant_001",
+    "project_id": "proj_jobforge",
+    "id": "ticket_003",
+    "subject": "How do I upgrade my plan?",
+    "body": "I am currently on the Starter plan and need more jobs per month. Can you help me upgrade to Pro? My account ID is ACC-12345.",
+    "status": "open",
+    "priority": "low",
+    "customer_email": "admin@startup.io",
+    "customer_name": "Admin User",
+    "created_at": "2024-01-14T16:00:00Z",
+    "tags": ["billing", "how-to"],
+    "metadata": {}
+  }
+]

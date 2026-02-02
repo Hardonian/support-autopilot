@@ -1,0 +1,47 @@
+{
+  "name": "base",
+  "product": {
+    "name": "Product",
+    "description": "A software product with support needs"
+  },
+  "terminology": {
+    "features": {},
+    "terms": {
+      "API": "Application Programming Interface",
+      "SDK": "Software Development Kit"
+    },
+    "avoid": [
+      "guarantee",
+      "promise",
+      "100%",
+      "always",
+      "never"
+    ]
+  },
+  "claims": {
+    "allowed": [],
+    "require_citation": [
+      "upcoming",
+      "roadmap",
+      "will be released",
+      "pricing",
+      "SLA",
+      "uptime"
+    ],
+    "prohibited": [
+      "we are the best",
+      "guaranteed",
+      "unlimited",
+      "free forever"
+    ]
+  },
+  "tone": {
+    "default": "friendly",
+    "available": ["concise", "friendly", "technical", "empathetic", "formal"]
+  },
+  "escalation": {
+    "keywords": ["urgent", "critical", "outage", "security", "breach", "data loss"],
+    "max_urgency": "critical",
+    "auto_escalate": false
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "jobforge",
+  "product": {
+    "name": "JobForge",
+    "description": "Distributed job orchestration platform"
+  },
+  "terminology": {
+    "features": {
+      "worker": "Execution environment that runs jobs",
+      "job": "Unit of work submitted to the system",
+      "workflow": "Connected sequence of jobs",
+      "trigger": "Event that initiates job execution"
+    },
+    "terms": {
+      "JobForge": "The platform name - always capitalized",
+      "runnerless": "Execution model without persistent runners",
+      "autopilot": "AI-assisted support and operations"
+    },
+    "avoid": [
+      "serverless",
+      "lambda",
+      "FaaS"
+    ]
+  },
+  "claims": {
+    "allowed": [
+      "runnerless execution",
+      "distributed job orchestration",
+      "workflow automation"
+    ],
+    "require_citation": [
+      "performance benchmarks",
+      "uptime statistics",
+      "pricing tiers",
+      "roadmap features"
+    ],
+    "prohibited": [
+      "better than AWS Lambda",
+      "cheapest on the market",
+      "zero latency"
+    ]
+  },
+  "tone": {
+    "default": "technical",
+    "available": ["concise", "friendly", "technical", "formal"]
+  },
+  "escalation": {
+    "keywords": ["workflow failure", "job stuck", "execution error", "critical pipeline"],
+    "max_urgency": "critical",
+    "auto_escalate": true
+  }
+}

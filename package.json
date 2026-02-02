@@ -1,0 +1,50 @@
+{
+  "name": "support-autopilot",
+  "version": "0.1.0",
+  "description": "Runnerless support autopilot - triage, draft responses with citations, propose KB patches",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "support": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "ci": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
+  },
+  "keywords": [
+    "support",
+    "autopilot",
+    "triage",
+    "kb",
+    "jobforge",
+    "llm",
+    "citations"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^3.23.8",
+    "commander": "^12.1.0",
+    "chalk": "^5.3.0",
+    "glob": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@typescript-eslint/eslint-plugin": "^8.16.0",
+    "@typescript-eslint/parser": "^8.16.0",
+    "eslint": "^9.15.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}
