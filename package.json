@@ -18,7 +18,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
-    "runnerless:audit": "echo 'Install @autopilot/audit-cli and run: autopilot-audit runnerless .'",
+    "runnerless:audit": "node ../autopilot-suite/packages/runnerless-audit/dist/cli.js .",
     "prepublishOnly": "pnpm run build"
   },
   "keywords": [
