@@ -9,13 +9,17 @@
     "support": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "lint": "eslint .",
+    "build": "tsup src/index.ts src/cli.ts --format esm --dts --clean",
+    "dev": "tsx watch src/cli.ts",
+    "lint": "eslint src --ext .ts --max-warnings=0",
+    "lint:fix": "eslint src --ext .ts --fix",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "ci": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
+    "test:coverage": "vitest run --coverage",
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
+    "runnerless:audit": "echo 'Install @autopilot/audit-cli and run: autopilot-audit runnerless .'",
+    "prepublishOnly": "pnpm run build"
   },
   "keywords": [
     "support",
@@ -27,24 +31,27 @@
     "citations"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
-    "zod": "^3.23.8",
+    "@autopilot/contracts": "file:../autopilot-suite/packages/contracts",
+    "@autopilot/jobforge-client": "file:../autopilot-suite/packages/jobforge-client",
+    "@autopilot/profiles": "file:../autopilot-suite/packages/profiles",
+    "zod": "^3.24.1",
     "commander": "^12.1.0",
     "chalk": "^5.3.0",
     "glob": "^11.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
-    "@typescript-eslint/eslint-plugin": "^8.16.0",
-    "@typescript-eslint/parser": "^8.16.0",
-    "eslint": "^9.15.0",
-    "typescript": "^5.6.3",
-    "vitest": "^2.1.5"
+    "@typescript-eslint/eslint-plugin": "^8.19.0",
+    "@typescript-eslint/parser": "^8.19.0",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   },
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@9.15.0"
 }

@@ -1,5 +1,4 @@
-import type { JobRequest } from '../contracts/job-request.js';
-import { createJobRequest } from '../contracts/job-request.js';
+import { type JobRequest, createJobRequest } from '@autopilot/contracts';
 import type { Ticket } from '../contracts/ticket.js';
 import type { TriageResult } from '../contracts/triage-result.js';
 import type { KBPatchProposal } from '../contracts/kb-patch.js';
@@ -8,8 +7,15 @@ export interface JobForgeOptions {
   tenantId: string;
   projectId: string;
   priority?: 'low' | 'normal' | 'high' | 'critical';
-  scheduledFor?: Date;
+  scheduledFor?: Date | string;
   metadata?: Record<string, unknown>;
+}
+
+function formatScheduledFor(scheduledFor?: Date | string): string | undefined {
+  if (scheduledFor instanceof Date) {
+    return scheduledFor.toISOString();
+  }
+  return scheduledFor;
 }
 
 export function createTriageJob(
@@ -24,11 +30,11 @@ export function createTriageJob(
       ticket_id: ticket.id,
       subject: ticket.subject,
       body_preview: ticket.body.slice(0, 500),
+      ...(options.metadata && { _metadata: options.metadata }),
     },
     {
       priority: options.priority,
-      metadata: options.metadata,
-      scheduledFor: options.scheduledFor,
+      scheduledFor: formatScheduledFor(options.scheduledFor),
     }
   );
 }
@@ -49,14 +55,12 @@ export function createDraftReplyJob(
       tone,
       requires_human_review: triageResult.requires_human_review,
       urgency: triageResult.urgency,
+      triage_topics: triageResult.topics,
+      ...(options.metadata && { _metadata: options.metadata }),
     },
     {
       priority: triageResult.urgency === 'critical' ? 'critical' : options.priority,
-      metadata: {
-        ...options.metadata,
-        triage_topics: triageResult.topics,
-      },
-      scheduledFor: options.scheduledFor,
+      scheduledFor: formatScheduledFor(options.scheduledFor),
     }
   );
 }
@@ -75,13 +79,11 @@ export function createKBPatchJob(
       proposed_title: proposal.proposed_title,
       related_ticket_count: proposal.related_ticket_ids.length,
       diff_preview: proposal.diff?.slice(0, 500),
+      related_tickets: proposal.related_ticket_ids,
+      ...(options.metadata && { _metadata: options.metadata }),
     },
     {
       priority: options.priority,
-      metadata: {
-        ...options.metadata,
-        related_tickets: proposal.related_ticket_ids,
-      },
     }
   );
 }
@@ -93,17 +95,17 @@ export function createBatchTriageJob(
   return createJobRequest(
     options.tenantId,
     options.projectId,
-    'autopilot.support.batch_triage',
+    'autopilot.support.triage',
     {
       ticket_count: tickets.length,
       ticket_ids: tickets.map(t => t.id),
+      batch_size: tickets.length,
+      is_batch: true,
+      ...(options.metadata && { _metadata: options.metadata }),
     },
     {
       priority: options.priority,
-      metadata: {
-        ...options.metadata,
-        batch_size: tickets.length,
-      },
+      scheduledFor: formatScheduledFor(options.scheduledFor),
     }
   );
 }
@@ -119,13 +121,11 @@ export function createIngestKBJob(
     {
       source_paths: sourcePaths,
       source_count: sourcePaths.length,
+      ingestion_batch_size: sourcePaths.length,
+      ...(options.metadata && { _metadata: options.metadata }),
     },
     {
       priority: options.priority,
-      metadata: {
-        ...options.metadata,
-        ingestion_batch_size: sourcePaths.length,
-      },
     }
   );
 }
