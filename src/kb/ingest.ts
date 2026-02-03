@@ -10,6 +10,7 @@ export interface IngestOptions {
   chunking?: ChunkingOptions;
   includePatterns?: string[];
   excludePatterns?: string[];
+  concurrency?: number;
 }
 
 const SUPPORTED_EXTENSIONS: Record<string, KBSourceType> = {
@@ -20,6 +21,9 @@ const SUPPORTED_EXTENSIONS: Record<string, KBSourceType> = {
   '.txt': 'text',
   '.json': 'json',
 };
+
+// Default concurrency limit for parallel file processing
+const DEFAULT_CONCURRENCY = 10;
 
 function detectType(filePath: string): KBSourceType {
   const ext = extname(filePath).toLowerCase();
@@ -74,6 +78,32 @@ export async function ingestFile(
   };
 }
 
+// Process files in batches with controlled concurrency
+async function processBatch<T, R>(
+  items: T[],
+  processor: (item: T) => Promise<R>,
+  concurrency: number
+): Promise<R[]> {
+  const results: R[] = [];
+  
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.allSettled(
+      batch.map(item => processor(item))
+    );
+    
+    for (const result of batchResults) {
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      } else {
+        console.error('Batch processing error:', result.reason);
+      }
+    }
+  }
+  
+  return results;
+}
+
 export async function ingestDirectory(
   dirPath: string,
   options: IngestOptions
@@ -84,28 +114,26 @@ export async function ingestDirectory(
     '**/dist/**',
     '**/.git/**',
   ];
+  const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
 
-  const files: string[] = [];
-  for (const pattern of includePatterns) {
-    const matches = await glob(pattern, {
+  // Batch glob operations - run all patterns in parallel
+  const globPromises = includePatterns.map(pattern =>
+    glob(pattern, {
       cwd: dirPath,
       absolute: true,
       ignore: excludePatterns,
-    });
-    files.push(...matches);
-  }
+    })
+  );
 
-  const uniqueFiles = [...new Set(files)];
-  const sources: KBSource[] = [];
+  const globResults = await Promise.all(globPromises);
+  const files = [...new Set(globResults.flat())];
 
-  for (const file of uniqueFiles) {
-    try {
-      const source = await ingestFile(file, options);
-      sources.push(source);
-    } catch (error) {
-      console.error(`Failed to ingest ${file}:`, error);
-    }
-  }
+  // Process files in parallel batches with controlled concurrency
+  const sources = await processBatch(
+    files,
+    async (file) => ingestFile(file, options),
+    concurrency
+  );
 
   return sources;
 }
