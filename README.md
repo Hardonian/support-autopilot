@@ -136,7 +136,7 @@ support redact ./tickets.json
 
 ## JobForge Integration
 
-Support Autopilot is **runnerless** - it generates job requests but never executes them. To enable batch processing, pipe the output to JobForge:
+Support Autopilot is **runnerless** - it never executes jobs and only emits JobForge-compatible request bundles. To enable batch processing, pipe the output to JobForge:
 
 ```bash
 # Generate job requests for batch triage
@@ -162,6 +162,20 @@ node dist/cli.js analyze \
   --out ./out/jobforge \
   --stable-output
 ```
+
+Outputs written by the command:
+
+- `out/jobforge/request-bundle.json`
+- `out/jobforge/report.json`
+- `out/jobforge/report.md`
+
+Deterministic fixture exports (redacted + stable) are kept at:
+
+- `fixtures/jobforge/request-bundle.json`
+- `fixtures/jobforge/report.json`
+- `fixtures/jobforge/report.md`
+
+The canonical `schema_version` is pinned to `1.0`, and stable output guarantees deterministic timestamps, IDs, and canonical JSON hashing.
 
 ### Supported Job Types
 

@@ -8,6 +8,7 @@ import {
   RunManifestSchema,
   JobRequestBundleSchema,
   ReportEnvelopeSchema,
+  schema_version,
   type JobRequest,
   type JobRequestBundle,
   type ReportEnvelope,
@@ -16,7 +17,7 @@ import {
 import { stableHash, withCanonicalHash } from '../utils/deterministic.js';
 
 const MODULE_ID = 'support' as const;
-const SCHEMA_VERSION = '1.0';
+const SCHEMA_VERSION = schema_version;
 const STABLE_TIMESTAMP = '1970-01-01T00:00:00.000Z';
 
 export const AnalyzeInputSchema = z.object({

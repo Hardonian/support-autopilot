@@ -8,8 +8,8 @@ const fixtureRoot = resolve('fixtures/jobforge');
 
 describe('jobforge fixtures', () => {
   it('validates positive fixtures', () => {
-    const bundle = JSON.parse(readFileSync(resolve(fixtureRoot, 'output/request-bundle.json'), 'utf-8'));
-    const report = JSON.parse(readFileSync(resolve(fixtureRoot, 'output/report.json'), 'utf-8'));
+    const bundle = JSON.parse(readFileSync(resolve(fixtureRoot, 'request-bundle.json'), 'utf-8'));
+    const report = JSON.parse(readFileSync(resolve(fixtureRoot, 'report.json'), 'utf-8'));
 
     expect(JobRequestBundleSchema.safeParse(bundle).success).toBe(true);
     expect(ReportEnvelopeSchema.safeParse(report).success).toBe(true);
@@ -22,6 +22,7 @@ describe('jobforge fixtures', () => {
       'negative/wrong-schema-version.json',
       'negative/missing-idempotency.json',
       'negative/action-without-policy.json',
+      'negative/missing-project.json',
     ];
 
     for (const fixture of negativeFixtures) {

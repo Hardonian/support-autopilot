@@ -3,7 +3,8 @@ import { TenantContextSchema } from './tenant.js';
 import { stableHash, withCanonicalHash } from '../utils/deterministic.js';
 
 // Migration note: replace this compat layer with @autopilot/contracts once the package is available.
-const SchemaVersionSchema = z.literal('1.0').default('1.0');
+export const schema_version = '1.0' as const;
+const SchemaVersionSchema = z.literal(schema_version).default(schema_version);
 
 export const HashMetadataSchema = z.object({
   algorithm: z.literal('sha256'),
@@ -164,7 +165,7 @@ export function createJobRequest(
   });
 
   return JobRequestSchema.parse({
-    schema_version: '1.0',
+    schema_version,
     module_id: options?.moduleId ?? 'support',
     tenant_id: tenantIdOrInput,
     project_id: projectId,
