@@ -1,0 +1,45 @@
+{
+  "tenant_id": "tenant_001",
+  "project_id": "proj_jobforge",
+  "trace_id": "trace_fixture",
+  "tickets": [
+    {
+      "tenant_id": "tenant_001",
+      "project_id": "proj_jobforge",
+      "id": "ticket_001",
+      "subject": "Reset password",
+      "body": "User cannot reset password from the dashboard.",
+      "status": "open",
+      "priority": "medium",
+      "created_at": "2024-01-01T00:00:00.000Z",
+      "tags": [],
+      "metadata": {}
+    }
+  ],
+  "triage_results": [
+    {
+      "tenant_id": "tenant_001",
+      "project_id": "proj_jobforge",
+      "ticket_id": "ticket_001",
+      "urgency": "medium",
+      "topics": [
+        {
+          "category": "authentication",
+          "confidence": 0.9,
+          "keywords": [
+            "password",
+            "reset"
+          ]
+        }
+      ],
+      "missing_info": [],
+      "suggested_priority": "medium",
+      "suggested_tags": [
+        "auth"
+      ],
+      "requires_kb_update": false,
+      "requires_human_review": false,
+      "processed_at": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

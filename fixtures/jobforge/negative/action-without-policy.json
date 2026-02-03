@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "module_id": "support",
+  "tenant_id": "tenant_001",
+  "project_id": "proj_jobforge",
+  "trace_id": "trace_missing_policy",
+  "jobs": [
+    {
+      "schema_version": "1.0",
+      "module_id": "support",
+      "tenant_id": "tenant_001",
+      "project_id": "proj_jobforge",
+      "trace_id": "trace_missing_policy",
+      "job_type": "autopilot.support.ingest_kb",
+      "job_id": "job_requires_policy",
+      "idempotency_key": "idempotency_key",
+      "priority": "normal",
+      "payload": {
+        "source_paths": [
+          "kb/sample.md"
+        ]
+      },
+      "created_at": "2024-01-01T00:00:00.000Z",
+      "requires_policy_token": false,
+      "metadata": {}
+    }
+  ],
+  "hash": {
+    "algorithm": "sha256",
+    "canonical_json_hash": "deadbeef"
+  }
+}

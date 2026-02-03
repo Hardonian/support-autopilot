@@ -1,46 +1,49 @@
-// Domain-specific contracts (shared contracts come from @autopilot/contracts)
+// Domain-specific contracts (shared contracts provided via compat layer)
 export * from './ticket.js';
 export * from './kb-source.js';
 export * from './draft-response.js';
 export * from './triage-result.js';
 export * from './kb-patch.js';
 
-// Re-export suite contracts for compatibility
 export {
-  // Tenant Context
   TenantContextSchema,
   type TenantContext,
   validateTenantContext,
-  
-  // Event Envelope
+} from './tenant.js';
+
+export {
   EventEnvelopeSchema,
   type EventEnvelope,
   createEventEnvelope,
-  
-  // Run Manifest
   RunManifestSchema,
   type RunManifest,
   createRunManifest,
-  
-  // Job Request
   JobRequestSchema,
   type JobRequest,
+  JobTypeSchema,
   type JobType,
+  JobPrioritySchema,
   type JobPriority,
   createJobRequest,
-  
-  // Report Envelope
+  JobRequestBundleSchema,
+  type JobRequestBundle,
+  createJobRequestBundle,
   ReportEnvelopeSchema,
   type ReportEnvelope,
   type Severity,
   type EvidenceLink,
+  EvidenceLinkSchema,
+  FindingSchema,
+  type Finding,
   createReportEnvelope,
-  
-  // Redaction
-  createRedactionHints,
-  redactObject,
-  DEFAULT_REDACTION_PATTERNS,
-  
-  // Utilities
+  HashMetadataSchema,
+  type HashMetadata,
+  validateJobRequestBundle,
+  validateReportEnvelope,
+} from './compat.js';
+
+export {
   serializeDeterministic,
-} from '@autopilot/contracts';
+  stableHash,
+  canonicalizeForHash,
+} from '../utils/deterministic.js';

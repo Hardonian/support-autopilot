@@ -1,0 +1,34 @@
+{
+  "hash": {
+    "algorithm": "sha256",
+    "canonical_json_hash": "1833a1fa60aa516c0e9b6f7c0178fbe15ac62d9db4d816bda70f55a00557332e"
+  },
+  "jobs": [
+    {
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "idempotency_key": "4e175d2aeaa1b142c66b3078c020a23aa15512f4f685ae4e2e74b4c1461cc482",
+      "job_id": "job_4e175d2aeaa1",
+      "job_type": "autopilot.support.triage",
+      "metadata": {},
+      "module_id": "support",
+      "payload": {
+        "body_preview": "User cannot reset password from the dashboard.",
+        "subject": "Reset password",
+        "ticket_id": "ticket_001",
+        "ticket_priority": "medium",
+        "ticket_status": "open"
+      },
+      "priority": "normal",
+      "project_id": "proj_jobforge",
+      "requires_policy_token": false,
+      "schema_version": "1.0",
+      "tenant_id": "tenant_001",
+      "trace_id": "trace_fixture"
+    }
+  ],
+  "module_id": "support",
+  "project_id": "proj_jobforge",
+  "schema_version": "1.0",
+  "tenant_id": "tenant_001",
+  "trace_id": "trace_fixture"
+}

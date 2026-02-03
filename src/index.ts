@@ -1,43 +1,44 @@
-// Re-export from @autopilot suite packages (selective to avoid naming conflicts)
 export {
-  // Tenant and base types
   type TenantContext,
   TenantContextSchema,
   validateTenantContext,
-  
-  // Event types
   type EventEnvelope,
-  type EventMetadata,
   EventEnvelopeSchema,
   createEventEnvelope,
-  
-  // Job request types  
+  type RunManifest,
+  RunManifestSchema,
+  createRunManifest,
   type JobRequest,
   type JobType,
   type JobPriority,
   JobRequestSchema,
+  JobTypeSchema,
+  JobPrioritySchema,
   createJobRequest,
-  
-  // Report types
+  type JobRequestBundle,
+  JobRequestBundleSchema,
+  createJobRequestBundle,
   type ReportEnvelope,
-  type ReportType,
-  type Severity,
   ReportEnvelopeSchema,
   createReportEnvelope,
-  
-  // Evidence and findings
+  type Severity,
   type EvidenceLink,
   type Finding,
   EvidenceLinkSchema,
   FindingSchema,
-  
-  // Utilities
+  type HashMetadata,
+  HashMetadataSchema,
+  validateJobRequestBundle,
+  validateReportEnvelope,
+} from './contracts/compat.js';
+
+export {
   canonicalizeForHash,
   stableHash,
   serializeDeterministic,
-} from '@autopilot/contracts';
+  withCanonicalHash,
+} from './utils/deterministic.js';
 
-// JobForge client (selective exports)
 export {
   buildJobRequest,
   createJobBatch,
@@ -49,7 +50,7 @@ export {
   type RequestBuilderOptions,
   type JobBatch,
   type ValidationResult,
-} from '@autopilot/jobforge-client';
+} from './jobforge-client/compat.js';
 
 // Domain-specific exports
 export * from './contracts/ticket.js';
@@ -63,3 +64,4 @@ export * from './draft/index.js';
 export * from './kb-proposals/index.js';
 export * from './jobforge/index.js';
 export * from './utils/index.js';
+export * from './jobforge/integration.js';

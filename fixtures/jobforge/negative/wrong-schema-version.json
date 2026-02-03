@@ -1,0 +1,12 @@
+{
+  "schema_version": "0.9",
+  "module_id": "support",
+  "tenant_id": "tenant_001",
+  "project_id": "proj_jobforge",
+  "trace_id": "trace_wrong_schema",
+  "jobs": [],
+  "hash": {
+    "algorithm": "sha256",
+    "canonical_json_hash": "deadbeef"
+  }
+}

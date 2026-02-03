@@ -1,0 +1,33 @@
+{
+  "findings": [
+    {
+      "description": "Prepared 1 triage job request(s) for JobForge.",
+      "evidence": [],
+      "id": "support.jobforge.bundle.created",
+      "severity": "info",
+      "title": "JobForge bundle prepared"
+    },
+    {
+      "description": "Received 1 triage result(s) for context.",
+      "evidence": [],
+      "id": "support.triage.results.provided",
+      "severity": "info",
+      "title": "Triage results provided"
+    }
+  ],
+  "hash": {
+    "algorithm": "sha256",
+    "canonical_json_hash": "94c30b1628c0d30d86eda750f08d6d69257d3b5cb6c8fd6a18824fbd0456bd43"
+  },
+  "metadata": {
+    "ticket_count": 1,
+    "triage_result_count": 1
+  },
+  "module_id": "support",
+  "project_id": "proj_jobforge",
+  "report_type": "autopilot.support.analysis",
+  "schema_version": "1.0",
+  "summary": "Support autopilot analyzed 1 ticket(s) and prepared 1 job request(s).",
+  "tenant_id": "tenant_001",
+  "trace_id": "trace_fixture"
+}

@@ -8,15 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@autopilot/contracts':
-        specifier: file:../autopilot-suite/packages/contracts
-        version: file:../autopilot-suite/packages/contracts
-      '@autopilot/jobforge-client':
-        specifier: file:../autopilot-suite/packages/jobforge-client
-        version: file:../autopilot-suite/packages/jobforge-client
-      '@autopilot/profiles':
-        specifier: file:../autopilot-suite/packages/profiles
-        version: file:../autopilot-suite/packages/profiles
       chalk:
         specifier: ^5.3.0
         version: 5.6.2
@@ -50,15 +41,6 @@ importers:
         version: 2.1.9(@types/node@20.19.30)
 
 packages:
-
-  '@autopilot/contracts@file:../autopilot-suite/packages/contracts':
-    resolution: {directory: ../autopilot-suite/packages/contracts, type: directory}
-
-  '@autopilot/jobforge-client@file:../autopilot-suite/packages/jobforge-client':
-    resolution: {directory: ../autopilot-suite/packages/jobforge-client, type: directory}
-
-  '@autopilot/profiles@file:../autopilot-suite/packages/profiles':
-    resolution: {directory: ../autopilot-suite/packages/profiles, type: directory}
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -1073,20 +1055,6 @@ packages:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
 snapshots:
-
-  '@autopilot/contracts@file:../autopilot-suite/packages/contracts':
-    dependencies:
-      zod: 3.25.76
-
-  '@autopilot/jobforge-client@file:../autopilot-suite/packages/jobforge-client':
-    dependencies:
-      '@autopilot/contracts': file:../autopilot-suite/packages/contracts
-      zod: 3.25.76
-
-  '@autopilot/profiles@file:../autopilot-suite/packages/profiles':
-    dependencies:
-      '@autopilot/contracts': file:../autopilot-suite/packages/contracts
-      zod: 3.25.76
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true

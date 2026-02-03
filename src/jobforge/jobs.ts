@@ -1,4 +1,4 @@
-import { type JobRequest, createJobRequest } from '@autopilot/contracts';
+import { type JobRequest, createJobRequest } from '../contracts/compat.js';
 import type { Ticket } from '../contracts/ticket.js';
 import type { TriageResult } from '../contracts/triage-result.js';
 import type { KBPatchProposal } from '../contracts/kb-patch.js';
@@ -84,6 +84,7 @@ export function createKBPatchJob(
     },
     {
       priority: options.priority,
+      requiresPolicyToken: true,
     }
   );
 }
@@ -95,7 +96,7 @@ export function createBatchTriageJob(
   return createJobRequest(
     options.tenantId,
     options.projectId,
-    'autopilot.support.triage',
+    'autopilot.support.batch_triage',
     {
       ticket_count: tickets.length,
       ticket_ids: tickets.map(t => t.id),
@@ -126,6 +127,7 @@ export function createIngestKBJob(
     },
     {
       priority: options.priority,
+      requiresPolicyToken: true,
     }
   );
 }

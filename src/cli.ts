@@ -2,7 +2,8 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { readFileSync } from 'fs';
+import { readFileSync, mkdirSync, writeFileSync } from 'fs';
+import { resolve } from 'path';
 import { ingestDirectory, buildIndex, retrieveForTicket } from './kb/index.js';
 import { triageBatch } from './triage/index.js';
 import { draftResponse } from './draft/index.js';
@@ -17,6 +18,9 @@ import {
 import { validateTickets, type Ticket } from './contracts/ticket.js';
 import { redactTicket } from './utils/pii.js';
 import { loadProfile, getDefaultProfile } from './utils/profiles.js';
+import { analyze, renderReport, validateBundle } from './jobforge/integration.js';
+import { serializeDeterministic } from './utils/deterministic.js';
+import { ZodError } from 'zod';
 
 const program = new Command();
 
@@ -289,6 +293,69 @@ program
       console.log('\n' + JSON.stringify(redactedData, null, 2));
     } catch (error) {
       console.error(chalk.red('Error redacting PII:'), error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('analyze')
+  .description('Analyze inputs and emit JobForge-compatible outputs (request bundle + report)')
+  .requiredOption('--inputs <path>', 'Path to JSON inputs')
+  .requiredOption('--tenant <id>', 'Tenant ID')
+  .requiredOption('--project <id>', 'Project ID')
+  .requiredOption('--trace <id>', 'Trace ID')
+  .requiredOption('--out <dir>', 'Output directory')
+  .option('--stable-output', 'Emit deterministic outputs for fixtures/docs')
+  .option('--no-markdown', 'Skip Markdown report')
+  .action(async (options) => {
+    try {
+      const inputsPath = resolve(options.inputs);
+      const outputDir = resolve(options.out);
+
+      const rawInputs = JSON.parse(readFileSync(inputsPath, 'utf-8'));
+      const result = analyze(rawInputs, {
+        tenantId: options.tenant,
+        projectId: options.project,
+        traceId: options.trace,
+        stableOutput: Boolean(options.stableOutput),
+      });
+
+      const validation = validateBundle(result.jobRequestBundle);
+      if (!validation.valid) {
+        console.error(chalk.red('Job request bundle validation failed'));
+        validation.errors?.forEach(error => console.error(chalk.red(`- ${error}`)));
+        process.exit(2);
+      }
+
+      mkdirSync(outputDir, { recursive: true });
+      writeFileSync(
+        resolve(outputDir, 'request-bundle.json'),
+        serializeDeterministic(result.jobRequestBundle) + '\n',
+        'utf-8'
+      );
+      writeFileSync(
+        resolve(outputDir, 'report.json'),
+        serializeDeterministic(result.reportEnvelope) + '\n',
+        'utf-8'
+      );
+
+      if (options.markdown !== false) {
+        writeFileSync(
+          resolve(outputDir, 'report.md'),
+          renderReport(result.reportEnvelope, 'markdown') + '\n',
+          'utf-8'
+        );
+      }
+
+      console.log(chalk.green('JobForge outputs written to:'), outputDir);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        console.error(chalk.red('Validation error:'), error.issues.map(issue => issue.message).join('; '));
+        process.exit(2);
+      }
+
+      const message = error instanceof Error ? error.message : 'Unexpected error';
+      console.error(chalk.red('Unexpected error:'), message);
       process.exit(1);
     }
   });
