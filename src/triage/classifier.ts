@@ -46,11 +46,15 @@ export function classifyUrgency(
   const criticalKeywords = options.criticalKeywords ?? DEFAULT_CRITICAL_KEYWORDS;
   const highPriorityKeywords = options.highPriorityKeywords ?? DEFAULT_HIGH_PRIORITY_KEYWORDS;
 
-  if (criticalKeywords.some(kw => text.includes(kw.toLowerCase()))) {
+  // Use cached normalized keywords for better performance
+  const normalizedCritical = getNormalizedKeywords(criticalKeywords);
+  const normalizedHigh = getNormalizedKeywords(highPriorityKeywords);
+
+  if (normalizedCritical.some(kw => text.includes(kw))) {
     return 'critical';
   }
 
-  if (highPriorityKeywords.some(kw => text.includes(kw.toLowerCase()))) {
+  if (normalizedHigh.some(kw => text.includes(kw))) {
     return 'high';
   }
 
