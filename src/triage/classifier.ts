@@ -75,7 +75,15 @@ export function classifyTopics(
   const topics: TriageTopic[] = [];
 
   for (const [category, keywords] of Object.entries(categories)) {
-    const matches = keywords.filter(kw => text.includes(kw.toLowerCase()));
+    // Use cached normalized keywords
+    const normalizedKeywords = getNormalizedKeywords(keywords);
+    const matches: string[] = [];
+    
+    for (let i = 0; i < normalizedKeywords.length; i++) {
+      if (text.includes(normalizedKeywords[i])) {
+        matches.push(keywords[i]); // Use original case for output
+      }
+    }
     
     if (matches.length > 0) {
       topics.push({
