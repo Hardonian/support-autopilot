@@ -152,15 +152,17 @@ export function draftResponse(
     : '';
   
   const closing = template.closing ?? 'Let me know if you need more help.';
-  const signature = template.signature ? `\n\n${template.signature},\nSupport Team` : '\n\nSupport Team';
-  
+  const signature = template.signature != null && template.signature !== ''
+    ? `\n\n${template.signature},\nSupport Team`
+    : '\n\nSupport Team';
+
   const fullBody = `${greeting}\n\n${body}\n\n${closing}${signature}${citationSection}`;
-  
+
   const validation = validateCitations(fullBody, relevantChunks);
-  
+
   let status: DraftStatus;
   let disclaimer: string | undefined;
-  
+
   if (!validation.valid && options.includeDisclaimer !== false) {
     status = 'citation_failed';
     disclaimer = 'Some information in this draft could not be verified against our knowledge base. Please review before sending.';
@@ -170,8 +172,8 @@ export function draftResponse(
   } else {
     status = 'ready';
   }
-  
-  if (options.includeDisclaimer === true && !disclaimer) {
+
+  if (options.includeDisclaimer === true && (disclaimer == null || disclaimer === '')) {
     disclaimer = 'This is an AI-generated draft. Please review before sending.';
   }
   

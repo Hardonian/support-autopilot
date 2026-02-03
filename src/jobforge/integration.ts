@@ -73,7 +73,9 @@ function buildJobRequest(
   payload: Record<string, unknown>,
   options: AnalyzeOptions
 ): JobRequest {
-  const createdAt = options.stableOutput ? STABLE_TIMESTAMP : (options.now ?? new Date()).toISOString();
+  const createdAt = options.stableOutput === true
+    ? STABLE_TIMESTAMP
+    : (options.now ?? new Date()).toISOString();
   const idempotencyKey = stableHash({
     tenant_id: options.tenantId,
     project_id: options.projectId,
@@ -88,7 +90,9 @@ function buildJobRequest(
     project_id: options.projectId,
     trace_id: options.traceId,
     job_type: jobType,
-    job_id: options.stableOutput ? `job_${idempotencyKey.slice(0, 12)}` : `job_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+    job_id: options.stableOutput === true
+      ? `job_${idempotencyKey.slice(0, 12)}`
+      : `job_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
     idempotency_key: idempotencyKey,
     priority: 'normal',
     payload,
@@ -201,13 +205,13 @@ export function analyze(inputs: AnalyzeInputs, options: AnalyzeOptions): Analyze
   const projectId = options.projectId;
   const traceId = options.traceId;
 
-  if (parsedInputs.tenant_id && parsedInputs.tenant_id !== tenantId) {
+  if (parsedInputs.tenant_id != null && parsedInputs.tenant_id !== tenantId) {
     throw new Error('Tenant ID mismatch between inputs and options');
   }
-  if (parsedInputs.project_id && parsedInputs.project_id !== projectId) {
+  if (parsedInputs.project_id != null && parsedInputs.project_id !== projectId) {
     throw new Error('Project ID mismatch between inputs and options');
   }
-  if (parsedInputs.trace_id && parsedInputs.trace_id !== traceId) {
+  if (parsedInputs.trace_id != null && parsedInputs.trace_id !== traceId) {
     throw new Error('Trace ID mismatch between inputs and options');
   }
 

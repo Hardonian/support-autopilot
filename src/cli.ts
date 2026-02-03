@@ -22,6 +22,49 @@ import { analyze, renderReport, validateBundle } from './jobforge/integration.js
 import { serializeDeterministic } from './utils/deterministic.js';
 import { ZodError } from 'zod';
 
+// Command option interfaces for type safety
+interface IngestOptions {
+  tenant: string;
+  project: string;
+  profile?: string;
+}
+
+interface TriageOptions {
+  tenant: string;
+  project: string;
+  profile?: string;
+  jobforge?: boolean;
+}
+
+interface DraftOptions {
+  ticket: string;
+  triage: string;
+  kb: string;
+  tenant: string;
+  project: string;
+  tone: string;
+  profile?: string;
+  jobforge?: boolean;
+}
+
+interface ProposeOptions {
+  fromTriage: string;
+  tenant: string;
+  project: string;
+  profile?: string;
+  jobforge?: boolean;
+}
+
+interface AnalyzeOptions {
+  inputs: string;
+  tenant: string;
+  project: string;
+  trace: string;
+  out: string;
+  stableOutput?: boolean;
+  markdown?: boolean;
+}
+
 const program = new Command();
 
 program
@@ -36,18 +79,19 @@ program
   .requiredOption('--tenant <id>', 'Tenant ID')
   .requiredOption('--project <id>', 'Project ID')
   .option('--profile <path>', 'Profile configuration file')
-  .action(async (path, options) => {
+  .action((path, options) => {
+    const typedOptions = options as IngestOptions;
     try {
       console.log(chalk.blue('Ingesting KB from:'), path);
       
       const stats = { ingested: 0, failed: 0, chunks: 0 };
       
       const ingestOptions = {
-        tenantId: options.tenant,
-        projectId: options.project,
+        tenantId: typedOptions.tenant,
+        projectId: typedOptions.project,
       };
       
-      const sources = await ingestDirectory(path, ingestOptions);
+      const sources = ingestDirectory(path, ingestOptions);
       
       for (const source of sources) {
         stats.ingested++;
@@ -74,6 +118,7 @@ program
   .option('--profile <path>', 'Profile configuration file')
   .option('--jobforge', 'Output JobForge job requests instead of direct results')
   .action(async (ticketsPath, options) => {
+    const typedOptions = options as TriageOptions;
     try {
       console.log(chalk.blue('Triaging tickets from:'), ticketsPath);
       
@@ -82,14 +127,14 @@ program
       
       // Verify tenant/project match
       for (const ticket of tickets) {
-        if (ticket.tenant_id !== options.tenant || ticket.project_id !== options.project) {
+        if (ticket.tenant_id !== typedOptions.tenant || ticket.project_id !== typedOptions.project) {
           console.error(chalk.red('Tenant/Project mismatch in ticket:'), ticket.id);
           process.exit(1);
         }
       }
       
       // Profile loaded for future use when LLM integration is added
-      const profile = options.profile ? loadProfile(options.profile) : getDefaultProfile();
+      const profile = typedOptions.profile !== undefined ? loadProfile(typedOptions.profile) : getDefaultProfile();
       void profile; // Mark as intentionally unused for now
       
       const { results, stats } = triageBatch(tickets);
@@ -102,13 +147,13 @@ program
       console.log(chalk.yellow(`  Needs human review: ${stats.needsHumanReview}`));
       console.log(chalk.yellow(`  Needs KB update: ${stats.needsKbUpdate}`));
       
-      if (options.jobforge) {
+      if (typedOptions.jobforge === true) {
         const jobs = results.map(result => 
           createTriageJob(
             tickets.find(t => t.id === result.ticket_id)!,
             {
-              tenantId: options.tenant,
-              projectId: options.project,
+              tenantId: typedOptions.tenant,
+              projectId: typedOptions.project,
               priority: result.urgency === 'critical' ? 'critical' : 'normal',
             }
           )
@@ -137,30 +182,31 @@ program
   .option('--profile <path>', 'Profile configuration file')
   .option('--jobforge', 'Output JobForge job request instead of draft')
   .action(async (options) => {
+    const typedOptions = options as DraftOptions;
     try {
-      console.log(chalk.blue('Drafting response for ticket:'), options.ticket);
+      console.log(chalk.blue('Drafting response for ticket:'), typedOptions.ticket);
       
-      const triageData = JSON.parse(readFileSync(options.triage, 'utf-8'));
+      const triageData = JSON.parse(readFileSync(typedOptions.triage, 'utf-8'));
       const triageResult = Array.isArray(triageData) 
-        ? triageData.find(t => t.ticket_id === options.ticket)
+        ? triageData.find(t => t.ticket_id === typedOptions.ticket)
         : triageData;
         
       if (!triageResult) {
-        console.error(chalk.red('Triage result not found for ticket:'), options.ticket);
+        console.error(chalk.red('Triage result not found for ticket:'), typedOptions.ticket);
         process.exit(1);
       }
       
-      const kbSources = JSON.parse(readFileSync(options.kb, 'utf-8'));
+      const kbSources = JSON.parse(readFileSync(typedOptions.kb, 'utf-8'));
       const index = buildIndex(
-        options.tenant,
-        options.project,
+        typedOptions.tenant,
+        typedOptions.project,
         Array.isArray(kbSources) ? kbSources : [kbSources]
       );
       
       const mockTicket: Ticket = {
-        tenant_id: options.tenant,
-        project_id: options.project,
-        id: options.ticket,
+        tenant_id: typedOptions.tenant,
+        project_id: typedOptions.project,
+        id: typedOptions.ticket,
         subject: triageResult.ticket_id,
         body: '',
         status: 'open',
@@ -174,7 +220,7 @@ program
       const kbChunks = kbResults.map(r => r.chunk);
       
       const draft = draftResponse(mockTicket, triageResult, kbChunks, {
-        tone: options.tone,
+        tone: typedOptions.tone,
         includeDisclaimer: true,
       });
       
@@ -185,7 +231,7 @@ program
         draft.warnings.forEach(w => console.log(chalk.yellow(`  - ${w}`)));
       }
       
-      if (draft.disclaimer) {
+      if (draft.disclaimer !== undefined && draft.disclaimer !== '') {
         console.log(chalk.cyan('\nDisclaimer:'), draft.disclaimer);
       }
       
@@ -193,14 +239,14 @@ program
       console.log(draft.body);
       console.log(chalk.cyan('\n--- END DRAFT ---'));
       
-      if (options.jobforge) {
+      if (typedOptions.jobforge === true) {
         const job = createDraftReplyJob(
           mockTicket,
           triageResult,
-          options.tone,
+          typedOptions.tone,
           {
-            tenantId: options.tenant,
-            projectId: options.project,
+            tenantId: typedOptions.tenant,
+            projectId: typedOptions.project,
             priority: triageResult.urgency === 'critical' ? 'critical' : 'normal',
           }
         );
@@ -225,18 +271,19 @@ program
   .option('--profile <path>', 'Profile configuration file')
   .option('--jobforge', 'Output JobForge job requests instead of proposals')
   .action(async (options) => {
+    const typedOptions = options as ProposeOptions;
     try {
-      console.log(chalk.blue('Proposing KB patches from triage:'), options.fromTriage);
+      console.log(chalk.blue('Proposing KB patches from triage:'), typedOptions.fromTriage);
       
-      const triageData = JSON.parse(readFileSync(options.fromTriage, 'utf-8'));
+      const triageData = JSON.parse(readFileSync(typedOptions.fromTriage, 'utf-8'));
       const triageResults = Array.isArray(triageData) ? triageData : [triageData];
       
       const proposal = proposeKBPatch(triageResults, {
-        tenantId: options.tenant,
-        projectId: options.project,
+        tenantId: typedOptions.tenant,
+        projectId: typedOptions.project,
       });
       
-      if (!proposal) {
+      if (proposal === null || proposal === undefined) {
         console.log(chalk.yellow('No KB patch proposal generated'));
         return;
       }
@@ -249,10 +296,10 @@ program
       console.log(proposal.proposed_content);
       console.log(chalk.cyan('\n--- END PROPOSAL ---'));
       
-      if (options.jobforge) {
+      if (typedOptions.jobforge === true) {
         const job = createKBPatchJob(proposal, {
-          tenantId: options.tenant,
-          projectId: options.project,
+          tenantId: typedOptions.tenant,
+          projectId: typedOptions.project,
         });
         
         console.log('\n' + formatJobForgeOutput([job], true));
@@ -270,7 +317,7 @@ program
   .command('redact')
   .description('Redact PII from ticket data')
   .argument('<tickets.json>', 'Path to JSON file containing tickets')
-  .action(async (ticketsPath) => {
+  .action((ticketsPath) => {
     try {
       console.log(chalk.blue('Redacting PII from:'), ticketsPath);
       
@@ -308,16 +355,17 @@ program
   .option('--stable-output', 'Emit deterministic outputs for fixtures/docs')
   .option('--no-markdown', 'Skip Markdown report')
   .action(async (options) => {
+    const typedOptions = options as AnalyzeOptions;
     try {
-      const inputsPath = resolve(options.inputs);
-      const outputDir = resolve(options.out);
+      const inputsPath = resolve(typedOptions.inputs);
+      const outputDir = resolve(typedOptions.out);
 
       const rawInputs = JSON.parse(readFileSync(inputsPath, 'utf-8'));
       const result = analyze(rawInputs, {
-        tenantId: options.tenant,
-        projectId: options.project,
-        traceId: options.trace,
-        stableOutput: Boolean(options.stableOutput),
+        tenantId: typedOptions.tenant,
+        projectId: typedOptions.project,
+        traceId: typedOptions.trace,
+        stableOutput: typedOptions.stableOutput === true,
       });
 
       const validation = validateBundle(result.jobRequestBundle);
@@ -339,7 +387,7 @@ program
         'utf-8'
       );
 
-      if (options.markdown !== false) {
+      if (typedOptions.markdown !== false) {
         writeFileSync(
           resolve(outputDir, 'report.md'),
           renderReport(result.reportEnvelope, 'markdown') + '\n',

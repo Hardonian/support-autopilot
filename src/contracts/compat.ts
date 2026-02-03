@@ -1,6 +1,9 @@
 import { z } from 'zod';
-import { TenantContextSchema } from './tenant.js';
+import { TenantContextSchema, type TenantContext, validateTenantContext } from './tenant.js';
 import { stableHash, withCanonicalHash } from '../utils/deterministic.js';
+
+// Re-export tenant types for compatibility
+export { TenantContextSchema, type TenantContext, validateTenantContext };
 
 // Migration note: replace this compat layer with @autopilot/contracts once the package is available.
 export const schema_version = '1.0' as const;
@@ -152,7 +155,7 @@ export function createJobRequest(
     });
   }
 
-  if (!projectId || !jobType || !payload) {
+  if (projectId == null || jobType == null || payload == null) {
     throw new Error('createJobRequest requires tenant, project, job type, and payload');
   }
 

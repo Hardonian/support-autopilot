@@ -42,7 +42,9 @@ export function stableHash(value: unknown): string {
   return createHash('sha256').update(canonical).digest('hex');
 }
 
-export function withCanonicalHash<T extends Record<string, unknown>>(value: T): T & {
+export function withCanonicalHash<T extends Record<string, unknown>>(
+  value: T
+): Omit<T, 'hash'> & {
   hash: {
     algorithm: 'sha256';
     canonical_json_hash: string;
@@ -55,5 +57,5 @@ export function withCanonicalHash<T extends Record<string, unknown>>(value: T): 
       algorithm: 'sha256',
       canonical_json_hash: stableHash(rest),
     },
-  };
+  } as Omit<T, 'hash'> & { hash: { algorithm: 'sha256'; canonical_json_hash: string } };
 }
