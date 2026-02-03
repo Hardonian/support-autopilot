@@ -84,7 +84,7 @@ export function groupByUrgency(
 ): Record<string, TriageResult[]> {
   return triageResults.reduce((groups, result) => {
     const key = result.urgency;
-    if (!groups[key]) {
+    if (groups[key] === undefined) {
       groups[key] = [];
     }
     groups[key].push(result);
