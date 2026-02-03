@@ -4,6 +4,7 @@ export * from './kb-source.js';
 export * from './draft-response.js';
 export * from './triage-result.js';
 export * from './kb-patch.js';
+export * from './triage-packet.js';
 
 export {
   TenantContextSchema,

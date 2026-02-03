@@ -32,10 +32,10 @@ const PII_PATTERNS: Array<{ name: string; pattern: RegExp; replacement: string }
     pattern: /\b(?:api[_-]?key|apikey)[:\s=]+['"]?[a-zA-Z0-9_-]{16,}['"]?/gi,
     replacement: '[API_KEY_REDACTED]',
   },
-  // Passwords in common patterns
+  // Passwords in common patterns (handles "password: value", "password = value", "password is value")
   {
     name: 'password',
-    pattern: /\b(?:password|passwd|pwd)[:\s=]+['"]?[^\s'"]{8,}['"]?/gi,
+    pattern: /\b(?:password|passwd|pwd)(?:[:\s=]+|\s+is\s+)['"]?[^\s'"]{8,}['"]?/gi,
     replacement: '[PASSWORD_REDACTED]',
   },
   // IP addresses
@@ -68,6 +68,8 @@ export function redactPII(text: string): RedactionResult {
   const redactions: RedactionResult['redactions'] = [];
   
   for (const { name, pattern, replacement } of PII_PATTERNS) {
+    // Reset lastIndex to start from beginning
+    pattern.lastIndex = 0;
     let match;
     while ((match = pattern.exec(text)) !== null) {
       redactions.push({
@@ -75,8 +77,14 @@ export function redactPII(text: string): RedactionResult {
         position: [match.index, match.index + match[0].length],
         originalValue: match[0],
       });
+      // Prevent infinite loop on zero-length matches
+      if (match.index === pattern.lastIndex) {
+        pattern.lastIndex++;
+      }
     }
     
+    // Reset again before replace
+    pattern.lastIndex = 0;
     redacted = redacted.replace(pattern, replacement);
   }
   
@@ -109,13 +117,19 @@ export function redactTicket(ticket: {
 }
 
 export function hasPII(text: string): boolean {
-  return PII_PATTERNS.some(({ pattern }) => pattern.test(text));
+  return PII_PATTERNS.some(({ pattern }) => {
+    // Reset lastIndex to avoid state issues with global regex
+    pattern.lastIndex = 0;
+    return pattern.test(text);
+  });
 }
 
 export function getPIITypes(text: string): string[] {
   const types: string[] = [];
   
   for (const { name, pattern } of PII_PATTERNS) {
+    // Reset lastIndex to avoid state issues with global regex
+    pattern.lastIndex = 0;
     if (pattern.test(text)) {
       types.push(name);
     }
