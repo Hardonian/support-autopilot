@@ -47,7 +47,7 @@ function setCachedTerms(text: string, terms: string[]): void {
   if (termCache.size >= MAX_CACHE_SIZE) {
     // Remove oldest entry (first in Map)
     const firstKey = termCache.keys().next().value;
-    if (firstKey) {
+    if (firstKey !== undefined && typeof firstKey === 'string') {
       termCache.delete(firstKey);
     }
   }
