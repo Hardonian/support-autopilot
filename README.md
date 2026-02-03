@@ -64,6 +64,17 @@ pnpm run build
 
 ## CLI Commands
 
+<!-- CLI_COMMANDS_START -->
+| Command | Description |
+| --- | --- |
+| `support ingest-kb <path>` | Ingest knowledge base documents from a directory. |
+| `support triage <tickets.json>` | Triage support tickets from JSON file. |
+| `support draft` | Draft a response for a ticket. |
+| `support propose-kb` | Propose KB patches based on triage results. |
+| `support redact <tickets.json>` | Redact PII from ticket data. |
+| `support analyze` | Analyze inputs and emit JobForge-compatible outputs (request bundle + report). |
+<!-- CLI_COMMANDS_END -->
+
 ### `support ingest-kb <path>`
 
 Ingest markdown/mdx/HTML/text files from a directory into the KB system.
@@ -136,6 +147,20 @@ support triage ./tickets.json \
 
 # JobForge would then process these requests
 # (This step requires your JobForge instance)
+```
+
+See [docs/jobforge-integration.md](docs/jobforge-integration.md) for full JobForge ingestion details.
+
+### JobForge analyze command (bundle + report)
+
+```bash
+node dist/cli.js analyze \
+  --inputs ./fixtures/jobforge/inputs/minimal.json \
+  --tenant tenant_001 \
+  --project proj_jobforge \
+  --trace trace_fixture \
+  --out ./out/jobforge \
+  --stable-output
 ```
 
 ### Supported Job Types

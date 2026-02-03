@@ -17,9 +17,9 @@ import {
   TriageResultSchema
 } from '../contracts/triage-result.js';
 import {
-  validateJobRequest,
+  JobRequestSchema,
   createJobRequest
-} from '../contracts/job-request.js';
+} from '../contracts/compat.js';
 
 describe('Ticket Schema', () => {
   it('should validate valid ticket', () => {
@@ -165,17 +165,22 @@ describe('Triage Result Schema', () => {
 describe('Job Request Schema', () => {
   it('should validate valid job request', () => {
     const job = {
+      schema_version: '1.0',
+      module_id: 'support',
       tenant_id: 't1',
       project_id: 'p1',
+      trace_id: 'trace1',
       job_type: 'autopilot.support.triage',
       job_id: 'job1',
+      idempotency_key: 'idempotency1',
       priority: 'normal',
       payload: { ticket_id: 't1' },
       created_at: new Date().toISOString(),
+      requires_policy_token: false,
       metadata: {},
     };
     
-    expect(() => validateJobRequest(job)).not.toThrow();
+    expect(() => JobRequestSchema.parse(job)).not.toThrow();
   });
   
   it('should create job request with defaults', () => {
@@ -191,6 +196,7 @@ describe('Job Request Schema', () => {
     expect(job.job_type).toBe('autopilot.support.triage');
     expect(job.priority).toBe('normal');
     expect(job.job_id).toMatch(/^job_/);
+    expect(job.idempotency_key).toBeDefined();
   });
   
   it('should create job request with options', () => {

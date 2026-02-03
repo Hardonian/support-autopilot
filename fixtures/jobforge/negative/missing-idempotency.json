@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "module_id": "support",
+  "tenant_id": "tenant_001",
+  "project_id": "proj_jobforge",
+  "trace_id": "trace_missing_idempotency",
+  "jobs": [
+    {
+      "schema_version": "1.0",
+      "module_id": "support",
+      "tenant_id": "tenant_001",
+      "project_id": "proj_jobforge",
+      "trace_id": "trace_missing_idempotency",
+      "job_type": "autopilot.support.triage",
+      "job_id": "job_missing_idempotency",
+      "priority": "normal",
+      "payload": {
+        "ticket_id": "ticket_001"
+      },
+      "created_at": "2024-01-01T00:00:00.000Z",
+      "requires_policy_token": false,
+      "metadata": {}
+    }
+  ],
+  "hash": {
+    "algorithm": "sha256",
+    "canonical_json_hash": "deadbeef"
+  }
+}

@@ -7,82 +7,53 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  verify-fast:
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        node-version: [20.x, 22.x]
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-      
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
-      
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      
-      - name: Run linter
-        run: pnpm run lint
-      
-      - name: Run type check
-        run: pnpm run typecheck
-      
-      - name: Run tests
-        run: pnpm run test
-      
-      - name: Build
-        run: pnpm run build
+    if: github.event_name == 'pull_request'
 
-  verify-examples:
-    runs-on: ubuntu-latest
-    needs: test
-    
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 9
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
           cache: 'pnpm'
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
-      - name: Build
-        run: pnpm run build
-      
-      - name: Test CLI - ingest-kb
-        run: |
-          node dist/cli.js ingest-kb ./examples/kb \
-            --tenant tenant_001 \
-            --project proj_jobforge \
-            --profile ./profiles/jobforge.json > /tmp/kb-output.json
-          test -s /tmp/kb-output.json
-      
-      - name: Test CLI - triage
-        run: |
-          node dist/cli.js triage ./examples/tickets/sample-tickets.json \
-            --tenant tenant_001 \
-            --project proj_jobforge > /tmp/triage-output.json
-          test -s /tmp/triage-output.json
-      
-      - name: Test CLI - redact
-        run: |
-          node dist/cli.js redact ./examples/tickets/sample-tickets.json > /tmp/redact-output.json
-          test -s /tmp/redact-output.json
+
+      - name: Verify (fast)
+        run: pnpm run verify:fast
+
+  verify-full:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify (full)
+        run: pnpm run verify:full
+
+      - name: Verify docs
+        run: pnpm run docs:verify

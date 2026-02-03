@@ -17,8 +17,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
-    "runnerless:audit": "node ../autopilot-suite/packages/runnerless-audit/dist/cli.js .",
+    "verify:fast": "pnpm run lint && pnpm run typecheck && pnpm run build",
+    "verify:full": "pnpm run verify:fast && pnpm run test",
+    "docs:verify": "pnpm run build && node scripts/docs-verify.mjs",
+    "check": "pnpm run verify:full",
     "prepublishOnly": "pnpm run build"
   },
   "keywords": [
@@ -33,9 +35,6 @@
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
-    "@autopilot/contracts": "file:../autopilot-suite/packages/contracts",
-    "@autopilot/jobforge-client": "file:../autopilot-suite/packages/jobforge-client",
-    "@autopilot/profiles": "file:../autopilot-suite/packages/profiles",
     "zod": "^3.24.1",
     "commander": "^12.1.0",
     "chalk": "^5.3.0",
