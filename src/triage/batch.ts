@@ -69,25 +69,6 @@ export function triageBatch(
   return { results, stats };
 }
 
-export function triageBatch(
-  tickets: Ticket[],
-  options: TriageOptions = {}
-): BatchTriageResult {
-  const results = tickets.map(ticket => triageTicket(ticket, options));
-  
-  const stats = {
-    total: results.length,
-    critical: results.filter(r => r.urgency === 'critical').length,
-    high: results.filter(r => r.urgency === 'high').length,
-    medium: results.filter(r => r.urgency === 'medium').length,
-    low: results.filter(r => r.urgency === 'low').length,
-    needsHumanReview: results.filter(r => r.requires_human_review).length,
-    needsKbUpdate: results.filter(r => r.requires_kb_update).length,
-  };
-
-  return { results, stats };
-}
-
 export function filterTicketsNeedingAttention(
   triageResults: TriageResult[]
 ): TriageResult[] {
