@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "module_id": "support",
+  "tenant_id": "tenant_001",
+  "trace_id": "trace_missing_project",
+  "jobs": [],
+  "hash": {
+    "algorithm": "sha256",
+    "canonical_json_hash": "deadbeef"
+  }
+}

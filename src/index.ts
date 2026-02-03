@@ -30,6 +30,7 @@ export {
   HashMetadataSchema,
   validateJobRequestBundle,
   validateReportEnvelope,
+  schema_version,
 } from './contracts/compat.js';
 
 export {
