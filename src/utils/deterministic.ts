@@ -8,6 +8,32 @@ export type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
+// Cache for hash computations to avoid re-processing identical inputs
+const hashCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 500;
+
+// LRU cache management for hashes
+function getCachedHash(key: string): string | undefined {
+  const cached = hashCache.get(key);
+  if (cached) {
+    // Move to end (most recently used)
+    hashCache.delete(key);
+    hashCache.set(key, cached);
+  }
+  return cached;
+}
+
+function setCachedHash(key: string, hash: string): void {
+  if (hashCache.size >= MAX_CACHE_SIZE) {
+    // Remove oldest entry (first in Map)
+    const firstKey = hashCache.keys().next().value;
+    if (firstKey) {
+      hashCache.delete(firstKey);
+    }
+  }
+  hashCache.set(key, hash);
+}
+
 export function canonicalizeForHash(value: unknown): JsonValue {
   if (value instanceof Date) {
     return value.toISOString();
@@ -38,8 +64,28 @@ export function serializeDeterministic(value: unknown): string {
 }
 
 export function stableHash(value: unknown): string {
+  // Fast path: check if we've seen this exact JSON string before
+  const valueKey = typeof value === 'object' && value !== null 
+    ? JSON.stringify(value)
+    : String(value);
+  
+  const cached = getCachedHash(valueKey);
+  if (cached) {
+    return cached;
+  }
+
   const canonical = JSON.stringify(canonicalizeForHash(value));
-  return createHash('sha256').update(canonical).digest('hex');
+  const hash = createHash('sha256').update(canonical).digest('hex');
+  
+  // Cache the result
+  setCachedHash(valueKey, hash);
+  
+  return hash;
+}
+
+// Clear cache for testing
+export function clearHashCache(): void {
+  hashCache.clear();
 }
 
 export function withCanonicalHash<T extends Record<string, unknown>>(
