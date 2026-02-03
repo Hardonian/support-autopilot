@@ -13,6 +13,47 @@ export interface RetrievalIndex {
   termIndex: Map<string, Set<number>>;
 }
 
+// Cache for term extraction to avoid re-processing same texts
+const termCache = new Map<string, string[]>();
+const MAX_CACHE_SIZE = 1000;
+
+// Pre-defined stop words Set (created once, not per call)
+const STOP_WORDS = new Set([
+  'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
+  'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
+  'would', 'could', 'should', 'may', 'might', 'must', 'shall',
+  'can', 'need', 'dare', 'ought', 'used', 'to', 'of', 'in',
+  'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into',
+  'through', 'during', 'before', 'after', 'above', 'below',
+  'between', 'under', 'and', 'but', 'or', 'yet', 'so',
+  'if', 'because', 'although', 'though', 'while', 'where',
+  'when', 'that', 'which', 'who', 'whom', 'whose', 'what',
+  'this', 'these', 'those', 'i', 'you', 'he', 'she', 'it',
+  'we', 'they', 'me', 'him', 'her', 'us', 'them',
+]);
+
+// LRU cache management
+function getCachedTerms(text: string): string[] | undefined {
+  const cached = termCache.get(text);
+  if (cached) {
+    // Move to end (most recently used)
+    termCache.delete(text);
+    termCache.set(text, cached);
+  }
+  return cached;
+}
+
+function setCachedTerms(text: string, terms: string[]): void {
+  if (termCache.size >= MAX_CACHE_SIZE) {
+    // Remove oldest entry (first in Map)
+    const firstKey = termCache.keys().next().value;
+    if (firstKey) {
+      termCache.delete(firstKey);
+    }
+  }
+  termCache.set(text, terms);
+}
+
 export function buildIndex(
   tenantId: string,
   projectId: string,
@@ -22,20 +63,32 @@ export function buildIndex(
   const chunks: KBChunk[] = [];
   const termIndex = new Map<string, Set<number>>();
 
+  // Batch process sources for better cache locality
+  const allContents: string[] = [];
+  const chunkIndices: number[] = [];
+
   for (const source of sources) {
     sourceMap.set(source.id, source);
     
     for (const chunk of source.chunks) {
       const chunkIndex = chunks.length;
       chunks.push(chunk);
+      allContents.push(chunk.content);
+      chunkIndices.push(chunkIndex);
+    }
+  }
 
-      const terms = extractTerms(chunk.content);
-      for (const term of terms) {
-        if (!termIndex.has(term)) {
-          termIndex.set(term, new Set());
-        }
-        termIndex.get(term)!.add(chunkIndex);
+  // Process all terms with caching
+  for (let i = 0; i < allContents.length; i++) {
+    const content = allContents[i];
+    const chunkIndex = chunkIndices[i];
+    
+    const terms = extractTerms(content);
+    for (const term of terms) {
+      if (!termIndex.has(term)) {
+        termIndex.set(term, new Set());
       }
+      termIndex.get(term)!.add(chunkIndex);
     }
   }
 
@@ -49,23 +102,25 @@ export function buildIndex(
 }
 
 function extractTerms(text: string): string[] {
+  // Check cache first
+  const cached = getCachedTerms(text);
+  if (cached) {
+    return cached;
+  }
+
   const normalized = text.toLowerCase();
   const words = normalized.match(/\b[a-z]+\b/g) ?? [];
-  const stopWords = new Set([
-    'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
-    'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
-    'would', 'could', 'should', 'may', 'might', 'must', 'shall',
-    'can', 'need', 'dare', 'ought', 'used', 'to', 'of', 'in',
-    'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into',
-    'through', 'during', 'before', 'after', 'above', 'below',
-    'between', 'under', 'and', 'but', 'or', 'yet', 'so',
-    'if', 'because', 'although', 'though', 'while', 'where',
-    'when', 'that', 'which', 'who', 'whom', 'whose', 'what',
-    'this', 'these', 'those', 'i', 'you', 'he', 'she', 'it',
-    'we', 'they', 'me', 'him', 'her', 'us', 'them',
-  ]);
+  const terms = [...new Set(words.filter(w => !STOP_WORDS.has(w) && w.length > 2))];
+  
+  // Cache result
+  setCachedTerms(text, terms);
+  
+  return terms;
+}
 
-  return [...new Set(words.filter(w => !stopWords.has(w) && w.length > 2))];
+// Clear cache for testing
+export function clearTermCache(): void {
+  termCache.clear();
 }
 
 export function search(
