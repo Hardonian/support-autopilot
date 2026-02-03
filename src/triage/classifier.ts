@@ -26,6 +26,17 @@ const DEFAULT_TOPIC_CATEGORIES: Record<string, string[]> = {
   'how-to': ['how', 'guide', 'tutorial', 'documentation', 'help', 'setup', 'configure'],
 };
 
+// Cache for pre-normalized keyword arrays to avoid repeated toLowerCase()
+const normalizedCache = new Map<string, string[]>();
+
+function getNormalizedKeywords(keywords: string[]): string[] {
+  const cacheKey = keywords.join('|');
+  if (!normalizedCache.has(cacheKey)) {
+    normalizedCache.set(cacheKey, keywords.map(k => k.toLowerCase()));
+  }
+  return normalizedCache.get(cacheKey)!;
+}
+
 export function classifyUrgency(
   ticket: Ticket,
   options: TriageOptions = {}
