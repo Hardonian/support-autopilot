@@ -147,20 +147,25 @@ export function createErrorTriagePacket(
       })
     : error;
 
+  // Use placeholders for invalid tenant/project IDs to ensure schema validation passes
+  const validTenantId = tenantId && tenantId.length > 0 ? tenantId : 'unknown';
+  const validProjectId = projectId && projectId.length > 0 ? projectId : 'unknown';
+  const validTicketId = ticketId && ticketId.length > 0 ? ticketId : 'unknown';
+
   const packetId = `packet_error_${stableHash({
-    tenant_id: tenantId,
-    project_id: projectId,
-    ticket_id: ticketId,
+    tenant_id: validTenantId,
+    project_id: validProjectId,
+    ticket_id: validTicketId,
     timestamp: new Date().toISOString(),
   })}`;
 
   const packet: TriagePacket = {
-    tenant_id: tenantId,
-    project_id: projectId,
+    tenant_id: validTenantId,
+    project_id: validProjectId,
     schema_version: '1.0',
     packet_id: packetId,
     ticket: {
-      id: ticketId,
+      id: validTicketId,
       subject: '[ERROR - TRIAGE FAILED]',
       body: '',
       status: 'open',
