@@ -25,6 +25,7 @@ The command writes the following files:
 | `out/jobforge/request-bundle.json` | JobForge JobRequestBundle (dry-run requests only). |
 | `out/jobforge/report.json` | ReportEnvelope with findings and summary. |
 | `out/jobforge/report.md` | Markdown rendering of the report (optional). |
+| `out/jobforge/metrics.prom` | OpenMetrics/Prometheus text format metrics (success/failure + volume counters). |
 
 The deterministic fixture snapshots are exported to:
 
@@ -42,6 +43,7 @@ Each JSON output includes:
 - `trace_id`
 - canonical JSON hash metadata (`hash.canonical_json_hash`)
 - job request `idempotency_key` values for every job
+- FinOps metadata on each job (`metadata.finops`) with bounded cost controls
 
 Stability guarantees:
 
@@ -53,6 +55,7 @@ Stability guarantees:
 1. Validate `request-bundle.json` against the bundle schema (see `src/contracts/compat.ts`).
 2. Enforce multi-tenant scoping by checking `tenant_id` + `project_id` on the bundle and each job.
 3. Require `requires_policy_token: true` for action-like job types (e.g., `autopilot.support.ingest_kb`).
+4. Enforce FinOps bounds (verify `metadata.finops` for cost caps).
 
 ## Library API
 

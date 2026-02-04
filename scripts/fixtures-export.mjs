@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { analyze, renderReport, serializeDeterministic } from '../dist/index.js';
+import { analyze, renderMetrics, renderReport, serializeDeterministic, validateBundle } from '../dist/index.js';
 
 function ensureBuild() {
   if (!existsSync(resolve('dist/index.js'))) {
@@ -32,6 +32,7 @@ const { reportEnvelope, jobRequestBundle } = analyze(inputs, {
   traceId,
   stableOutput: true,
 });
+const validation = validateBundle(jobRequestBundle);
 
 const fixturesDir = resolve('fixtures/jobforge');
 mkdirSync(fixturesDir, { recursive: true });
@@ -39,5 +40,10 @@ mkdirSync(fixturesDir, { recursive: true });
 writeFileSync(resolve(fixturesDir, 'request-bundle.json'), serializeDeterministic(jobRequestBundle) + '\n', 'utf-8');
 writeFileSync(resolve(fixturesDir, 'report.json'), serializeDeterministic(reportEnvelope) + '\n', 'utf-8');
 writeFileSync(resolve(fixturesDir, 'report.md'), renderReport(reportEnvelope, 'markdown') + '\n', 'utf-8');
+writeFileSync(
+  resolve(fixturesDir, 'metrics.prom'),
+  renderMetrics({ jobRequestBundle, reportEnvelope, validation }) + '\n',
+  'utf-8'
+);
 
 console.log('fixtures:export completed successfully.');

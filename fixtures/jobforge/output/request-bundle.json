@@ -1,7 +1,7 @@
 {
   "hash": {
     "algorithm": "sha256",
-    "canonical_json_hash": "1833a1fa60aa516c0e9b6f7c0178fbe15ac62d9db4d816bda70f55a00557332e"
+    "canonical_json_hash": "1b469b59312741b42c8148cfd51142a515b572c7bfbefb1998c42965f5f7e7eb"
   },
   "jobs": [
     {
@@ -9,7 +9,15 @@
       "idempotency_key": "4e175d2aeaa1b142c66b3078c020a23aa15512f4f685ae4e2e74b4c1461cc482",
       "job_id": "job_4e175d2aeaa1",
       "job_type": "autopilot.support.triage",
-      "metadata": {},
+      "metadata": {
+        "finops": {
+          "cost_center": "support-autopilot",
+          "cost_object": "autopilot.support.triage",
+          "max_cost_usd": 0.25,
+          "max_output_bytes": 20000,
+          "max_runtime_seconds": 60
+        }
+      },
       "module_id": "support",
       "payload": {
         "body_preview": "User cannot reset password from the dashboard.",
