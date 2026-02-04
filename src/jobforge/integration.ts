@@ -51,10 +51,38 @@ export interface ValidationResult {
   errors?: string[];
 }
 
+export interface FinOpsMetadata {
+  cost_center: string;
+  cost_object: string;
+  max_cost_usd: number;
+  max_runtime_seconds: number;
+  max_output_bytes: number;
+}
+
+export interface MetricsInput {
+  jobRequestBundle: JobRequestBundle;
+  reportEnvelope: ReportEnvelope;
+  validation: ValidationResult;
+}
+
 const ACTION_JOB_TYPES = new Set([
   'autopilot.support.propose_kb_patch',
   'autopilot.support.ingest_kb',
 ]);
+
+const FINOPS_DEFAULTS: Omit<FinOpsMetadata, 'cost_object'> = {
+  cost_center: 'support-autopilot',
+  max_cost_usd: 0.25,
+  max_runtime_seconds: 60,
+  max_output_bytes: 20000,
+};
+
+function buildFinOpsMetadata(jobType: JobRequest['job_type']): FinOpsMetadata {
+  return {
+    ...FINOPS_DEFAULTS,
+    cost_object: jobType,
+  };
+}
 
 function ensureTenantScope(
   items: Array<{ tenant_id: string; project_id: string }>,
@@ -98,7 +126,9 @@ function buildJobRequest(
     payload,
     created_at: createdAt,
     requires_policy_token: ACTION_JOB_TYPES.has(jobType),
-    metadata: {},
+    metadata: {
+      finops: buildFinOpsMetadata(jobType),
+    },
   };
 }
 
@@ -250,6 +280,27 @@ export function validateBundle(bundle: unknown): ValidationResult {
       errors.push(`Job ${job.job_id} is missing idempotency_key`);
     }
 
+    const finops = (job.metadata as { finops?: FinOpsMetadata | null } | undefined)?.finops;
+    if (!finops) {
+      errors.push(`Job ${job.job_id} is missing finops metadata`);
+    } else {
+      if (!finops.cost_center) {
+        errors.push(`Job ${job.job_id} finops.cost_center is required`);
+      }
+      if (!finops.cost_object) {
+        errors.push(`Job ${job.job_id} finops.cost_object is required`);
+      }
+      if (finops.max_cost_usd == null || finops.max_cost_usd <= 0) {
+        errors.push(`Job ${job.job_id} finops.max_cost_usd must be > 0`);
+      }
+      if (finops.max_runtime_seconds == null || finops.max_runtime_seconds <= 0) {
+        errors.push(`Job ${job.job_id} finops.max_runtime_seconds must be > 0`);
+      }
+      if (finops.max_output_bytes == null || finops.max_output_bytes <= 0) {
+        errors.push(`Job ${job.job_id} finops.max_output_bytes must be > 0`);
+      }
+    }
+
     if (job.tenant_id !== schemaResult.data.tenant_id || job.project_id !== schemaResult.data.project_id) {
       errors.push(`Job ${job.job_id} has tenant/project mismatch`);
     }
@@ -260,6 +311,71 @@ export function validateBundle(bundle: unknown): ValidationResult {
   }
 
   return errors.length === 0 ? { valid: true } : { valid: false, errors };
+}
+
+function formatMetricLabels(labels: Record<string, string>): string {
+  const entries = Object.entries(labels);
+  if (entries.length === 0) {
+    return '';
+  }
+  const serialized = entries
+    .map(([key, value]) => `${key}="${value}"`)
+    .join(',');
+  return `{${serialized}}`;
+}
+
+function renderMetricSample(
+  name: string,
+  value: number,
+  labels: Record<string, string> = {}
+): string {
+  return `${name}${formatMetricLabels(labels)} ${value}`;
+}
+
+export function renderMetrics(input: MetricsInput): string {
+  const { jobRequestBundle, reportEnvelope, validation } = input;
+  const ticketCount = Number(reportEnvelope.metadata?.ticket_count ?? 0);
+  const triageResultCount = Number(reportEnvelope.metadata?.triage_result_count ?? 0);
+  const jobTypeCounts = jobRequestBundle.jobs.reduce<Record<string, number>>((counts, job) => {
+    counts[job.job_type] = (counts[job.job_type] ?? 0) + 1;
+    return counts;
+  }, {});
+
+  const lines = [
+    '# HELP support_autopilot_runner_runs_total Total runner invocations by outcome.',
+    '# TYPE support_autopilot_runner_runs_total counter',
+    renderMetricSample('support_autopilot_runner_runs_total', 1, {
+      runner: 'bundle_emitter',
+      outcome: validation.valid ? 'success' : 'failure',
+    }),
+    '# HELP support_autopilot_tickets_total Total tickets analyzed.',
+    '# TYPE support_autopilot_tickets_total counter',
+    renderMetricSample('support_autopilot_tickets_total', ticketCount, { outcome: 'processed' }),
+    '# HELP support_autopilot_triage_results_total Total triage results received.',
+    '# TYPE support_autopilot_triage_results_total counter',
+    renderMetricSample('support_autopilot_triage_results_total', triageResultCount, { outcome: 'received' }),
+    '# HELP support_autopilot_job_requests_total Total job requests emitted.',
+    '# TYPE support_autopilot_job_requests_total counter',
+  ];
+
+  for (const [jobType, count] of Object.entries(jobTypeCounts)) {
+    lines.push(renderMetricSample('support_autopilot_job_requests_total', count, {
+      job_type: jobType,
+      outcome: 'emitted',
+    }));
+  }
+
+  if (!validation.valid) {
+    const errorCount = validation.errors?.length ?? 0;
+    lines.push(
+      '# HELP support_autopilot_validation_errors_total Total validation errors.',
+      '# TYPE support_autopilot_validation_errors_total counter',
+      renderMetricSample('support_autopilot_validation_errors_total', errorCount, { stage: 'bundle_validation' })
+    );
+  }
+
+  lines.push('# EOF');
+  return lines.join('\n');
 }
 
 export function renderReport(reportEnvelope: ReportEnvelope, format: 'markdown' | 'json' = 'json'): string {

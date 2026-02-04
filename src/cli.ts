@@ -18,7 +18,7 @@ import {
 import { validateTickets, type Ticket } from './contracts/ticket.js';
 import { redactTicket } from './utils/pii.js';
 import { loadProfile, getDefaultProfile } from './utils/profiles.js';
-import { analyze, renderReport, validateBundle } from './jobforge/integration.js';
+import { analyze, renderMetrics, renderReport, validateBundle } from './jobforge/integration.js';
 import { serializeDeterministic } from './utils/deterministic.js';
 import { ZodError } from 'zod';
 
@@ -384,6 +384,15 @@ program
       writeFileSync(
         resolve(outputDir, 'report.json'),
         serializeDeterministic(result.reportEnvelope) + '\n',
+        'utf-8'
+      );
+      writeFileSync(
+        resolve(outputDir, 'metrics.prom'),
+        renderMetrics({
+          jobRequestBundle: result.jobRequestBundle,
+          reportEnvelope: result.reportEnvelope,
+          validation,
+        }) + '\n',
         'utf-8'
       );
 
