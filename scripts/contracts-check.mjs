@@ -214,7 +214,7 @@ if (existsSync(cliPath)) {
   fail('dist/cli.js', 'file not found');
 }
 
-const cliCommands = ['--help', 'triage --help', 'draft --help', 'ingest-kb --help', 'propose-kb --help', 'redact --help', 'analyze --help'];
+const cliCommands = ['--help', 'plan --help', 'run --help', 'triage --help', 'draft --help', 'ingest-kb --help', 'propose-kb --help', 'redact --help', 'analyze --help'];
 
 for (const cmd of cliCommands) {
   try {

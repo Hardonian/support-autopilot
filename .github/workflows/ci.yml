@@ -37,6 +37,12 @@ jobs:
       - name: Doctor
         run: pnpm run doctor
 
+      - name: Plan (dry-run)
+        run: pnpm run plan
+
+      - name: Run smoke test
+        run: pnpm run run:smoke
+
       - name: Verify docs
         run: pnpm run docs:verify
 
@@ -69,6 +75,12 @@ jobs:
 
       - name: Doctor
         run: pnpm run doctor
+
+      - name: Plan (dry-run)
+        run: pnpm run plan
+
+      - name: Run smoke test
+        run: pnpm run run:smoke
 
       - name: Verify docs
         run: pnpm run docs:verify

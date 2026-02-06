@@ -191,6 +191,9 @@ function scanDirectory(dir, extensions) {
     }
     if (stats.isDirectory()) {
       results.push(...scanDirectory(fullPath, extensions));
+    } else if (entry.endsWith('.test.ts') || entry.endsWith('.test.js') || entry.endsWith('.spec.ts') || entry.endsWith('.spec.js')) {
+      // Skip test files — they intentionally contain fake secrets as fixtures
+      continue;
     } else if (extensions.some(ext => entry.endsWith(ext))) {
       const hits = scanFile(fullPath);
       if (hits.length > 0) {
@@ -247,6 +250,8 @@ const requiredScripts = [
   'test',
   'contracts:check',
   'doctor',
+  'plan',
+  'run:smoke',
 ];
 
 for (const script of requiredScripts) {

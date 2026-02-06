@@ -7,5 +7,6 @@ coverage/
 .DS_Store
 *.tsbuildinfo
 .tmp/
+artifacts/
 examples/output/
 examples/job-requests/
