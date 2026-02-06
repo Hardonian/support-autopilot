@@ -279,8 +279,40 @@ pnpm run lint
 pnpm run typecheck
 
 # Full CI check
-pnpm run ci
+pnpm run verify:full
 ```
+
+## Contract Kit
+
+Shared contracts live in `src/contracts/` (Zod schemas) with the canonical version and catalog at `contracts/`.
+
+### How to run contracts check + doctor
+
+```bash
+# Validate schemas, SDK exports, CLI entrypoints, fixture snapshots, and version alignment
+pnpm run contracts:check
+
+# Verify environment, prerequisites, secret leakage, and required scripts
+pnpm run doctor
+```
+
+**`contracts:check`** validates:
+- All Zod schemas are exported and have `.parse()`
+- SDK public API surface (validators, factories, utilities)
+- `schema_version` in code matches `contracts/contracts.version.json`
+- Schema catalog and version file are in sync
+- CLI entrypoints exist and `--help` works for all commands
+- Fixture snapshots match (via `contracts:compat`)
+
+**`doctor`** validates:
+- Node.js >= 20, pnpm >= 9
+- Dependencies installed, lockfile present
+- Build output exists (`dist/index.js`, `dist/index.d.ts`, `dist/cli.js`)
+- All contract source files present
+- No hardcoded secrets (AWS keys, private keys, bearer tokens, passwords)
+- Required scripts defined in `package.json`
+
+Both commands are enforced in CI on every PR and push to `main`.
 
 ## Testing
 

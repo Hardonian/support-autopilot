@@ -20,6 +20,8 @@
     "verify:fast": "pnpm run lint && pnpm run typecheck && pnpm run build",
     "verify:full": "pnpm run verify:fast && pnpm run test",
     "contracts:compat": "node scripts/contracts-compat.mjs",
+    "contracts:check": "node scripts/contracts-check.mjs",
+    "doctor": "node scripts/doctor.mjs",
     "fixtures:export": "node scripts/fixtures-export.mjs",
     "docs:verify": "pnpm run build && node scripts/docs-verify.mjs",
     "check": "pnpm run verify:full",

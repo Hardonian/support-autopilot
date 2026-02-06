@@ -16,6 +16,9 @@ import {
   formatJobForgeOutput,
 } from './jobforge/index.js';
 import { validateTickets, type Ticket } from './contracts/ticket.js';
+import { validateTriageResult } from './contracts/triage-result.js';
+import { validateKBSources } from './contracts/kb-source.js';
+import type { TonePreset } from './draft/generator.js';
 import { redactTicket } from './utils/pii.js';
 import { loadProfile, getDefaultProfile } from './utils/profiles.js';
 import { analyze, renderMetrics, renderReport, validateBundle } from './jobforge/integration.js';
@@ -79,28 +82,28 @@ program
   .requiredOption('--tenant <id>', 'Tenant ID')
   .requiredOption('--project <id>', 'Project ID')
   .option('--profile <path>', 'Profile configuration file')
-  .action((path, options) => {
+  .action(async (path: string, options: unknown) => {
     const typedOptions = options as IngestOptions;
     try {
       console.log(chalk.blue('Ingesting KB from:'), path);
-      
+
       const stats = { ingested: 0, failed: 0, chunks: 0 };
-      
+
       const ingestOptions = {
         tenantId: typedOptions.tenant,
         projectId: typedOptions.project,
       };
-      
-      const sources = ingestDirectory(path, ingestOptions);
-      
+
+      const sources = await ingestDirectory(path, ingestOptions);
+
       for (const source of sources) {
         stats.ingested++;
         stats.chunks += source.chunks.length;
       }
-      
+
       console.log(chalk.green(`Ingested ${stats.ingested} documents`));
       console.log(chalk.green(`Created ${stats.chunks} chunks`));
-      
+
       // Output as JSON for piping
       console.log('\n' + JSON.stringify(sources, null, 2));
     } catch (error) {
@@ -117,12 +120,12 @@ program
   .requiredOption('--project <id>', 'Project ID')
   .option('--profile <path>', 'Profile configuration file')
   .option('--jobforge', 'Output JobForge job requests instead of direct results')
-  .action(async (ticketsPath, options) => {
+  .action((ticketsPath: string, options: unknown) => {
     const typedOptions = options as TriageOptions;
     try {
       console.log(chalk.blue('Triaging tickets from:'), ticketsPath);
-      
-      const ticketsData = JSON.parse(readFileSync(ticketsPath, 'utf-8'));
+
+      const ticketsData: unknown = JSON.parse(readFileSync(ticketsPath, 'utf-8'));
       const tickets = validateTickets(Array.isArray(ticketsData) ? ticketsData : [ticketsData]);
       
       // Verify tenant/project match
@@ -181,28 +184,28 @@ program
   .option('--tone <tone>', 'Tone preset (concise|friendly|technical|empathetic|formal)', 'friendly')
   .option('--profile <path>', 'Profile configuration file')
   .option('--jobforge', 'Output JobForge job request instead of draft')
-  .action(async (options) => {
+  .action((options: unknown) => {
     const typedOptions = options as DraftOptions;
     try {
       console.log(chalk.blue('Drafting response for ticket:'), typedOptions.ticket);
-      
-      const triageData = JSON.parse(readFileSync(typedOptions.triage, 'utf-8'));
-      const triageResult = Array.isArray(triageData) 
-        ? triageData.find(t => t.ticket_id === typedOptions.ticket)
-        : triageData;
-        
-      if (!triageResult) {
-        console.error(chalk.red('Triage result not found for ticket:'), typedOptions.ticket);
-        process.exit(1);
-      }
-      
-      const kbSources = JSON.parse(readFileSync(typedOptions.kb, 'utf-8'));
+
+      const triageData: unknown = JSON.parse(readFileSync(typedOptions.triage, 'utf-8'));
+      const triageResult = validateTriageResult(
+        Array.isArray(triageData)
+          ? (triageData as unknown[]).find((t): t is Record<string, unknown> =>
+              typeof t === 'object' && t !== null && 'ticket_id' in t && (t as Record<string, unknown>).ticket_id === typedOptions.ticket
+            )
+          : triageData
+      );
+
+      const kbData: unknown = JSON.parse(readFileSync(typedOptions.kb, 'utf-8'));
+      const kbSources = validateKBSources(Array.isArray(kbData) ? kbData : [kbData]);
       const index = buildIndex(
         typedOptions.tenant,
         typedOptions.project,
-        Array.isArray(kbSources) ? kbSources : [kbSources]
+        kbSources
       );
-      
+
       const mockTicket: Ticket = {
         tenant_id: typedOptions.tenant,
         project_id: typedOptions.project,
@@ -215,30 +218,30 @@ program
         tags: triageResult.suggested_tags ?? [],
         metadata: {},
       };
-      
+
       const kbResults = retrieveForTicket(index, mockTicket.subject, mockTicket.body);
       const kbChunks = kbResults.map(r => r.chunk);
-      
+
       const draft = draftResponse(mockTicket, triageResult, kbChunks, {
-        tone: typedOptions.tone,
+        tone: typedOptions.tone as TonePreset,
         includeDisclaimer: true,
       });
-      
+
       console.log(chalk.green('Draft created with status:'), draft.status);
-      
+
       if (draft.warnings.length > 0) {
         console.log(chalk.yellow('Warnings:'));
         draft.warnings.forEach(w => console.log(chalk.yellow(`  - ${w}`)));
       }
-      
+
       if (draft.disclaimer !== undefined && draft.disclaimer !== '') {
         console.log(chalk.cyan('\nDisclaimer:'), draft.disclaimer);
       }
-      
+
       console.log(chalk.cyan('\n--- DRAFT RESPONSE ---\n'));
       console.log(draft.body);
       console.log(chalk.cyan('\n--- END DRAFT ---'));
-      
+
       if (typedOptions.jobforge === true) {
         const job = createDraftReplyJob(
           mockTicket,
@@ -250,7 +253,7 @@ program
             priority: triageResult.urgency === 'critical' ? 'critical' : 'normal',
           }
         );
-        
+
         console.log('\n' + formatJobForgeOutput([job], true));
         console.log('\n' + JSON.stringify(job, null, 2));
       } else {
@@ -270,19 +273,20 @@ program
   .requiredOption('--project <id>', 'Project ID')
   .option('--profile <path>', 'Profile configuration file')
   .option('--jobforge', 'Output JobForge job requests instead of proposals')
-  .action(async (options) => {
+  .action((options: unknown) => {
     const typedOptions = options as ProposeOptions;
     try {
       console.log(chalk.blue('Proposing KB patches from triage:'), typedOptions.fromTriage);
+
+      const triageData: unknown = JSON.parse(readFileSync(typedOptions.fromTriage, 'utf-8'));
+      const triageResults = Array.isArray(triageData) ? (triageData as unknown[]) : [triageData];
       
-      const triageData = JSON.parse(readFileSync(typedOptions.fromTriage, 'utf-8'));
-      const triageResults = Array.isArray(triageData) ? triageData : [triageData];
-      
-      const proposal = proposeKBPatch(triageResults, {
+      const validatedResults = triageResults.map(r => validateTriageResult(r));
+      const proposal = proposeKBPatch(validatedResults, {
         tenantId: typedOptions.tenant,
         projectId: typedOptions.project,
       });
-      
+
       if (proposal === null || proposal === undefined) {
         console.log(chalk.yellow('No KB patch proposal generated'));
         return;
@@ -317,11 +321,11 @@ program
   .command('redact')
   .description('Redact PII from ticket data')
   .argument('<tickets.json>', 'Path to JSON file containing tickets')
-  .action((ticketsPath) => {
+  .action((ticketsPath: string) => {
     try {
       console.log(chalk.blue('Redacting PII from:'), ticketsPath);
-      
-      const ticketsData = JSON.parse(readFileSync(ticketsPath, 'utf-8'));
+
+      const ticketsData: unknown = JSON.parse(readFileSync(ticketsPath, 'utf-8'));
       const tickets = validateTickets(Array.isArray(ticketsData) ? ticketsData : [ticketsData]);
       
       const redactedData = tickets.map(ticket => {
@@ -354,14 +358,14 @@ program
   .requiredOption('--out <dir>', 'Output directory')
   .option('--stable-output', 'Emit deterministic outputs for fixtures/docs')
   .option('--no-markdown', 'Skip Markdown report')
-  .action(async (options) => {
+  .action((options: unknown) => {
     const typedOptions = options as AnalyzeOptions;
     try {
       const inputsPath = resolve(typedOptions.inputs);
       const outputDir = resolve(typedOptions.out);
 
-      const rawInputs = JSON.parse(readFileSync(inputsPath, 'utf-8'));
-      const result = analyze(rawInputs, {
+      const rawInputs: unknown = JSON.parse(readFileSync(inputsPath, 'utf-8'));
+      const result = analyze(rawInputs as Record<string, unknown>, {
         tenantId: typedOptions.tenant,
         projectId: typedOptions.project,
         traceId: typedOptions.trace,

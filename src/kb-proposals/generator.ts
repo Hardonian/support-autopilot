@@ -21,7 +21,7 @@ function generateFaqContent(triageResults: TriageResult[]): string {
   const sortedTopics = [...topics.entries()].sort((a, b) => b[1] - a[1]);
   const topTopic = sortedTopics[0];
   
-  if (!topTopic) {
+  if (topTopic == null) {
     return '';
   }
   
