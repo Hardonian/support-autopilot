@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "schema_version": "1.0",
+  "updated_at": "2026-02-06",
+  "schemas": [
+    "TenantContext",
+    "Ticket",
+    "TriageResult",
+    "TriagePacket",
+    "DraftResponse",
+    "KBSource",
+    "KBPatch",
+    "EventEnvelope",
+    "RunManifest",
+    "JobRequest",
+    "JobRequestBundle",
+    "ReportEnvelope",
+    "Finding",
+    "ErrorEnvelope",
+    "LogEvent"
+  ]
+}

@@ -179,7 +179,7 @@ export function createJobRequest(
     priority: options?.priority ?? 'normal',
     payload,
     created_at: createdAt,
-    scheduled_for: options?.scheduledFor
+    scheduled_for: options?.scheduledFor != null
       ? (typeof options.scheduledFor === 'string' ? options.scheduledFor : options.scheduledFor.toISOString())
       : undefined,
     requires_policy_token: options?.requiresPolicyToken ?? false,

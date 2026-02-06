@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "support-autopilot contract catalog",
+  "description": "Maps contract names to their source locations and validation functions",
+  "contracts": {
+    "TenantContext": {
+      "source": "src/contracts/tenant.ts",
+      "schema": "TenantContextSchema",
+      "validator": "validateTenantContext"
+    },
+    "Ticket": {
+      "source": "src/contracts/ticket.ts",
+      "schema": "TicketSchema",
+      "validator": "validateTicket"
+    },
+    "TriageResult": {
+      "source": "src/contracts/triage-result.ts",
+      "schema": "TriageResultSchema",
+      "validator": "validateTriageResult"
+    },
+    "TriagePacket": {
+      "source": "src/contracts/triage-packet.ts",
+      "schema": "TriagePacketSchema",
+      "validator": "validateTriagePacket"
+    },
+    "DraftResponse": {
+      "source": "src/contracts/draft-response.ts",
+      "schema": "DraftResponseSchema",
+      "validator": "validateDraftResponse"
+    },
+    "KBSource": {
+      "source": "src/contracts/kb-source.ts",
+      "schema": "KBSourceSchema",
+      "validator": "validateKBSource"
+    },
+    "KBPatch": {
+      "source": "src/contracts/kb-patch.ts",
+      "schema": "KBPatchSchema",
+      "validator": "validateKBPatch"
+    },
+    "EventEnvelope": {
+      "source": "src/contracts/compat.ts",
+      "schema": "EventEnvelopeSchema",
+      "validator": "createEventEnvelope"
+    },
+    "RunManifest": {
+      "source": "src/contracts/compat.ts",
+      "schema": "RunManifestSchema",
+      "validator": "createRunManifest"
+    },
+    "JobRequest": {
+      "source": "src/contracts/compat.ts",
+      "schema": "JobRequestSchema",
+      "validator": "createJobRequest"
+    },
+    "JobRequestBundle": {
+      "source": "src/contracts/compat.ts",
+      "schema": "JobRequestBundleSchema",
+      "validator": "validateJobRequestBundle"
+    },
+    "ReportEnvelope": {
+      "source": "src/contracts/compat.ts",
+      "schema": "ReportEnvelopeSchema",
+      "validator": "validateReportEnvelope"
+    },
+    "Finding": {
+      "source": "src/contracts/compat.ts",
+      "schema": "FindingSchema",
+      "validator": null
+    },
+    "ErrorEnvelope": {
+      "source": "src/contracts/triage-packet.ts",
+      "schema": "ErrorEnvelopeSchema",
+      "validator": "createErrorEnvelope"
+    },
+    "LogEvent": {
+      "source": "src/contracts/log-event.ts",
+      "schema": "LogEventSchema",
+      "validator": "validateLogEvent"
+    }
+  }
+}

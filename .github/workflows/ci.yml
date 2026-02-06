@@ -31,8 +31,11 @@ jobs:
       - name: Verify (fast)
         run: pnpm run verify:fast
 
-      - name: Contracts compatibility
-        run: pnpm run contracts:compat
+      - name: Contracts check
+        run: pnpm run contracts:check
+
+      - name: Doctor
+        run: pnpm run doctor
 
       - name: Verify docs
         run: pnpm run docs:verify
@@ -61,8 +64,11 @@ jobs:
       - name: Verify (full)
         run: pnpm run verify:full
 
-      - name: Contracts compatibility
-        run: pnpm run contracts:compat
+      - name: Contracts check
+        run: pnpm run contracts:check
+
+      - name: Doctor
+        run: pnpm run doctor
 
       - name: Verify docs
         run: pnpm run docs:verify
