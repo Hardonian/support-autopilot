@@ -24,6 +24,8 @@
     "doctor": "node scripts/doctor.mjs",
     "fixtures:export": "node scripts/fixtures-export.mjs",
     "docs:verify": "pnpm run build && node scripts/docs-verify.mjs",
+    "plan": "pnpm run build && node dist/cli.js plan --tenant smoke --project smoke --json",
+    "run:smoke": "pnpm run build && node dist/cli.js run --tenant smoke --project smoke --smoke --json",
     "check": "pnpm run verify:full",
     "prepublishOnly": "pnpm run build"
   },
