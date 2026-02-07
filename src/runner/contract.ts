@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ArtifactManager } from './artifacts.js';
 import { toRunnerException } from './errors.js';
+import type { RunnerError } from './errors.js';
 import { triageBatch } from '../triage/index.js';
 import { draftResponse } from '../draft/index.js';
 import { proposeKBPatch } from '../kb-proposals/index.js';
@@ -121,11 +122,11 @@ export class SupportAutopilotRunner implements RunnerContract {
       }
 
       // Finalize artifacts
-      const summary = artifacts.finalize('runner.execute', false, result.status);
+      const summary = artifacts.finalize('runner.execute', false, result.status as 'success' | 'failure' | 'partial' | undefined);
 
       // Add summary to evidence
-      result.evidence.json = {
-        ...result.evidence.json,
+      (result.evidence as { json: Record<string, unknown>; summary: string }).json = {
+        ...(result.evidence as { json: Record<string, unknown>; summary: string }).json,
         summary,
         runner: {
           id: this.id,
