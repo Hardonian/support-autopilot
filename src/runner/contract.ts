@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { ArtifactManager } from './artifacts.js';
-import { toRunnerException } from './errors.js';
-import type { RunnerError } from './errors.js';
+import { toRunnerException, RunnerErrorSchema } from './errors.js';
 import { triageBatch } from '../triage/index.js';
 import { draftResponse } from '../draft/index.js';
 import { proposeKBPatch } from '../kb-proposals/index.js';
@@ -55,7 +54,7 @@ export const RunnerResultSchema = z.object({
     json: z.record(z.unknown()),
     summary: z.string(),
   }),
-  error: z.optional(RunnerError),
+  error: z.optional(RunnerErrorSchema),
 });
 
 export type RunnerResult = z.infer<typeof RunnerResultSchema>;
