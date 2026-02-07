@@ -2,6 +2,59 @@
 
 A **runnerless** support autopilot that ingests tickets and knowledge base docs, performs triage, drafts responses with enforced citations, and proposes KB patches. Outputs JobForge job requests for heavier processing but **never executes or sends messages by default**.
 
+## Runner Contract
+
+Support Autopilot implements a **Runner Contract** for safe, provable execution by ControlPlane systems. The runner is callable via a standardized interface that guarantees safety boundaries and comprehensive evidence generation.
+
+### Runner Interface
+
+```typescript
+interface RunnerContract {
+  readonly id: string;                    // 'support-autopilot'
+  readonly version: string;               // Semantic version
+  readonly capabilities: string[];        // ['ticket-triage', 'response-drafting', ...]
+  readonly blastRadius: 'none' | 'low' | 'medium' | 'high' | 'critical';
+
+  execute(inputs: RunnerInputs): Promise<RunnerResult>;
+}
+```
+
+### Execution Contract
+
+The `execute()` method **never throws** and always returns:
+
+```typescript
+interface RunnerResult {
+  status: 'success' | 'failure' | 'partial';
+  output: Record<string, unknown>;       // Structured execution results
+  evidence: {
+    json: Record<string, unknown>;       // Full evidence packet (inputs, decisions, outputs, timestamps, versions)
+    summary: string;                     // Short markdown summary
+  };
+  error?: RunnerError;                   // Present only on failure
+}
+```
+
+### ControlPlane Integration
+
+ControlPlane calls the runner like this:
+
+```typescript
+import { supportAutopilotRunner } from 'support-autopilot';
+
+const result = await supportAutopilotRunner.execute({
+  tenantId: 'my-tenant',
+  projectId: 'my-project',
+  command: 'demo',  // or 'run'
+  options: { /* additional options */ }
+});
+
+// Result is guaranteed safe and provable
+console.log(result.status);        // 'success' | 'failure' | 'partial'
+console.log(result.evidence.summary);  // Human-readable summary
+console.log(result.evidence.json);     // Full audit trail
+```
+
 ## Non-Negotiable Safety Boundaries
 
 1. **Draft-only by default** - No auto-send functionality
@@ -19,6 +72,9 @@ pnpm install
 
 # Build the project
 pnpm run build
+
+# Run deterministic demo (no external secrets required)
+./dist/cli.js demo --tenant demo --project demo
 
 # Ingest knowledge base documents
 ./dist/cli.js ingest-kb ./examples/kb \
@@ -67,6 +123,7 @@ pnpm run build
 <!-- CLI_COMMANDS_START -->
 | Command | Description |
 | --- | --- |
+| `support demo` | Run deterministic demo with built-in fixtures (no external dependencies). |
 | `support ingest-kb <path>` | Ingest knowledge base documents from a directory. |
 | `support triage <tickets.json>` | Triage support tickets from JSON file. |
 | `support draft` | Draft a response for a ticket. |
@@ -74,6 +131,25 @@ pnpm run build
 | `support redact <tickets.json>` | Redact PII from ticket data. |
 | `support analyze` | Analyze inputs and emit JobForge-compatible outputs (request bundle + report). |
 <!-- CLI_COMMANDS_END -->
+
+### `support demo`
+
+Run a deterministic demo using built-in fixtures. No external secrets or dependencies required. Perfect for testing the Runner Contract integration.
+
+```bash
+support demo \
+  --tenant <tenant_id> \
+  --project <project_id> \
+  --out <output_dir> \
+  --json
+```
+
+Outputs a complete evidence packet with:
+- Triage results for sample tickets
+- KB ingestion and retrieval
+- Draft response generation
+- KB patch proposals
+- Full audit trail with timestamps and versions
 
 ### `support ingest-kb <path>`
 

@@ -3,6 +3,7 @@ import { ExitCode, RunnerException, toRunnerException, RunnerErrorSchema } from 
 import { redactObject, detectSecretPatterns, redactJsonString } from './redact.js';
 import { withRetry } from './retry.js';
 import { ZodError, z } from 'zod';
+import { supportAutopilotRunner, RunnerInputsSchema, RunnerResultSchema } from './contract.js';
 
 // ---------------------------------------------------------------------------
 // Error envelope
@@ -250,5 +251,87 @@ describe('withRetry', () => {
       idempotencyKey: 'idem-123',
     });
     expect(result.idempotencyKey).toBe('idem-123');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Runner Contract
+// ---------------------------------------------------------------------------
+describe('SupportAutopilotRunner', () => {
+  it('has correct contract properties', () => {
+    expect(supportAutopilotRunner.id).toBe('support-autopilot');
+    expect(supportAutopilotRunner.version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(supportAutopilotRunner.capabilities).toContain('ticket-triage');
+    expect(supportAutopilotRunner.capabilities).toContain('response-drafting');
+    expect(supportAutopilotRunner.blastRadius).toBe('low');
+  });
+
+  it('validates inputs correctly', () => {
+    const validInputs = {
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      command: 'demo' as const,
+    };
+    expect(() => RunnerInputsSchema.parse(validInputs)).not.toThrow();
+
+    const invalidInputs = {
+      tenantId: '',
+      projectId: 'test-project',
+      command: 'invalid' as any,
+    };
+    expect(() => RunnerInputsSchema.parse(invalidInputs)).toThrow();
+  });
+
+  it('executes demo command successfully', async () => {
+    const inputs = {
+      tenantId: 'smoke-tenant',
+      projectId: 'smoke-project',
+      command: 'demo' as const,
+      options: {},
+    };
+
+    const result = await supportAutopilotRunner.execute(inputs);
+
+    // Should not throw
+    expect(result).toBeDefined();
+    expect(result.status).toBe('success');
+    expect(result.output).toHaveProperty('ticketsProcessed');
+    expect(result.evidence).toBeDefined();
+    expect((result.evidence as any).json).toBeDefined();
+    expect((result.evidence as any).summary).toBeDefined();
+    expect(result.error).toBeUndefined();
+
+    // Validate result schema
+    expect(() => RunnerResultSchema.parse(result)).not.toThrow();
+
+    // Check evidence contains runner metadata
+    expect(((result.evidence as any).json as any).runner).toBeDefined();
+    expect(((result.evidence as any).json as any).runner.id).toBe('support-autopilot');
+    expect(((result.evidence as any).json as any).inputs).toEqual(inputs);
+  });
+
+  it('handles invalid inputs gracefully', async () => {
+    const invalidInputs = {
+      tenantId: '',
+      projectId: 'test',
+      command: 'demo' as const,
+    };
+
+    const result = await supportAutopilotRunner.execute(invalidInputs as any);
+
+    // Should not crash, should return failure
+    expect(result.status).toBe('failure');
+    expect(result.error).toBeDefined();
+    expect((result.error as any)?.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('never throws exceptions', async () => {
+    const invalidInputs = null as any;
+
+    // This should never throw, always return a result
+    const result = await supportAutopilotRunner.execute(invalidInputs);
+
+    expect(result.status).toBe('failure');
+    expect(result.error).toBeDefined();
   });
 });

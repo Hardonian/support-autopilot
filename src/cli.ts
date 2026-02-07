@@ -25,6 +25,7 @@ import { analyze, renderMetrics, renderReport, validateBundle } from './jobforge
 import { serializeDeterministic } from './utils/deterministic.js';
 import { ExitCode, toRunnerException, type RunnerError } from './runner/errors.js';
 import { ArtifactManager } from './runner/artifacts.js';
+import { supportAutopilotRunner } from './runner/contract.js';
 
 // ---------------------------------------------------------------------------
 // Global option interfaces
@@ -160,6 +161,39 @@ program
 // ---------------------------------------------------------------------------
 // plan — dry-run that produces plan + artifacts without network writes
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// demo — deterministic demo run using built-in fixtures
+// ---------------------------------------------------------------------------
+program
+  .command('demo')
+  .description('Run deterministic demo with built-in fixtures (no external dependencies)')
+  .requiredOption('--tenant <id>', 'Tenant ID')
+  .requiredOption('--project <id>', 'Project ID')
+  .option('--out <dir>', 'Output directory for artifacts')
+  .option('--json', 'Emit structured JSON output only')
+  .action(async function (this: Command, options: unknown) {
+    const opts = mergeGlobal(options as RunOptions, this);
+
+    try {
+      const result = await supportAutopilotRunner.execute({
+        tenantId: opts.tenant,
+        projectId: opts.project,
+        command: 'demo',
+        options: opts as unknown as Record<string, unknown>,
+      });
+
+      if (opts.json !== true) {
+        console.log('\n' + chalk.green('Demo completed successfully'));
+        console.log(chalk.gray(`  Status: ${result.status}`));
+        console.log(chalk.gray(`  Evidence: ${String((result.evidence as { summary: unknown }).summary)}`));
+      }
+
+      outputResult(result, opts);
+    } catch (error) {
+      handleError(error, opts);
+    }
+  });
+
 program
   .command('plan')
   .description('Dry-run: validate inputs, produce plan and artifacts without side effects')

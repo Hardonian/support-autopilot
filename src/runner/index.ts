@@ -3,3 +3,4 @@ export { RunnerLogger, type LogLevel as RunnerLogLevel, type StructuredLogEntry 
 export { ArtifactManager, type ArtifactManagerOptions, type RunSummary } from './artifacts.js';
 export { withRetry, type RetryOptions, type RetryResult } from './retry.js';
 export { redactObject, detectSecretPatterns, redactJsonString } from './redact.js';
+export { SupportAutopilotRunner, supportAutopilotRunner, RunnerInputsSchema, RunnerResultSchema, type RunnerContract, type RunnerInputs, type RunnerResult } from './contract.js';

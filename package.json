@@ -26,6 +26,7 @@
     "docs:verify": "pnpm run build && node scripts/docs-verify.mjs",
     "plan": "pnpm run build && node dist/cli.js plan --tenant smoke --project smoke --json",
     "run:smoke": "pnpm run build && node dist/cli.js run --tenant smoke --project smoke --smoke --json",
+    "demo": "pnpm run build && node dist/cli.js demo --tenant demo --project demo --json",
     "check": "pnpm run verify:full",
     "prepublishOnly": "pnpm run build"
   },
