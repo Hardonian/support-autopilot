@@ -10,3 +10,9 @@ coverage/
 artifacts/
 examples/output/
 examples/job-requests/
+__pycache__/
+build/
+.pytest_cache/
+.idea/
+.vscode/
+*.pyc
