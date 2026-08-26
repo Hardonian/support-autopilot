@@ -76,3 +76,5 @@ export * from './jobforge/index.js';
 export * from './utils/index.js';
 export * from './jobforge/integration.js';
 export * from './runner/index.js';
+export * from './ai/index.js';
+export * from './network/index.js';

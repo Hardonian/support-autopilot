@@ -26,6 +26,9 @@ import { serializeDeterministic } from './utils/deterministic.js';
 import { ExitCode, toRunnerException, type RunnerError } from './runner/errors.js';
 import { ArtifactManager } from './runner/artifacts.js';
 import { supportAutopilotRunner } from './runner/contract.js';
+import { defaultModelRouter } from './ai/model-router.js';
+import { defaultMeshBridge } from './network/autopilot-mesh.js';
+import { AutopilotServer } from './network/server.js';
 
 // ---------------------------------------------------------------------------
 // Global option interfaces
@@ -752,4 +755,77 @@ program
     }
   });
 
+program
+  .command('serve')
+  .description('Start REST API server and serve bleeding-edge Web UI')
+  .option('-p, --port <number>', 'Port to listen on', '3080')
+  .option('-h, --host <string>', 'Host to bind to', '0.0.0.0')
+  .action(async function (this: Command, options: { port: string; host: string }) {
+    try {
+      const port = parseInt(options.port, 10);
+      const server = new AutopilotServer({ port, host: options.host });
+      const address = await server.start();
+      console.log(chalk.cyan.bold('\n🚀 Support Autopilot Server & Web UI Active'));
+      console.log(chalk.gray('--------------------------------------------------'));
+      console.log(chalk.green(`  ➜ Web Control Center: `) + chalk.white.underline(address));
+      console.log(chalk.green(`  ➜ REST Health Check:  `) + chalk.white.underline(`${address}/health`));
+      console.log(chalk.green(`  ➜ AI Metrics API:     `) + chalk.white.underline(`${address}/api/metrics`));
+      console.log(chalk.green(`  ➜ Autopilot Mesh:     `) + chalk.white.underline(`${address}/api/network/topology`));
+      console.log(chalk.gray('--------------------------------------------------'));
+      console.log(chalk.yellow('Press Ctrl+C to stop server\n'));
+    } catch (error) {
+      console.error(chalk.red('Failed to start server:'), error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('ui')
+  .description('Launch the interactive Support Autopilot Web UI in browser')
+  .option('-p, --port <number>', 'Port to listen on', '3080')
+  .action(async function (this: Command, options: { port: string }) {
+    try {
+      const port = parseInt(options.port, 10);
+      const server = new AutopilotServer({ port });
+      const address = await server.start();
+      console.log(chalk.cyan.bold('\n✨ Opening Support Autopilot Web UI: ') + chalk.white.underline(address));
+      console.log(chalk.gray('Running in foreground. Press Ctrl+C to exit.\n'));
+    } catch (error) {
+      console.error(chalk.red('Failed to launch UI:'), error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('router')
+  .description('Inspect LLM model router metrics, token burn, latency, and circuit breakers')
+  .option('--reset', 'Reset all circuit breakers to CLOSED')
+  .option('--json', 'Emit structured JSON output only')
+  .action(function (this: Command, options: { reset?: boolean; json?: boolean }) {
+    const opts = mergeGlobal(options as GlobalOptions, this);
+    if (options.reset) {
+      defaultModelRouter.resetCircuits();
+      if (opts.json !== true) {
+        console.log(chalk.green('✔ All model circuit breakers have been reset to CLOSED.'));
+      }
+    }
+    const metrics = defaultModelRouter.getMetrics();
+    outputResult(metrics, opts);
+  });
+
+program
+  .command('network')
+  .description('Inspect Autopilot Mesh Network connectivity (FinOps, JobForge, ControlPlane)')
+  .option('--json', 'Emit structured JSON output only')
+  .action(function (this: Command, options: { json?: boolean }) {
+    const opts = mergeGlobal(options as GlobalOptions, this);
+    const topology = defaultMeshBridge.getNetworkTopology();
+    const signals = {
+      churnSignals: defaultMeshBridge.exportChurnSignals(),
+      billingAnomalies: defaultMeshBridge.exportBillingAnomalies(),
+    };
+    outputResult({ topology, signals, status: 'CONNECTED' }, opts);
+  });
+
 program.parse();
+
