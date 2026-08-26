@@ -49,7 +49,7 @@ export function canonicalizeForHash(value: unknown): JsonValue {
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, entryValue]) => [key, canonicalizeForHash(entryValue)] as const);
 
-    return Object.fromEntries(entries) as JsonValue;
+    return Object.fromEntries(entries);
   }
 
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null) {
@@ -110,5 +110,5 @@ export function withCanonicalHash<T extends Record<string, unknown>>(
       algorithm: 'sha256',
       canonical_json_hash: stableHash(rest),
     },
-  } as Omit<T, 'hash'> & { hash: { algorithm: 'sha256'; canonical_json_hash: string } };
+  };
 }

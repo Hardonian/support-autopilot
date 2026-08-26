@@ -330,7 +330,7 @@ program
         const kbChunks = kbResults.map(r => r.chunk);
 
         const draft = draftResponse(firstTicket, firstResult, kbChunks, {
-          tone: 'friendly' as TonePreset,
+          tone: 'friendly',
           includeDisclaimer: true,
         });
         artifacts.writeEvidence('draft-response', draft);

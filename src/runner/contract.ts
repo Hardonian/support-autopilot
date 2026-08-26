@@ -121,11 +121,11 @@ export class SupportAutopilotRunner implements RunnerContract {
       }
 
       // Finalize artifacts
-      const summary = artifacts.finalize('runner.execute', false, result.status as 'success' | 'failure' | 'partial' | undefined);
+      const summary = artifacts.finalize('runner.execute', false, result.status);
 
       // Add summary to evidence
-      (result.evidence as { json: Record<string, unknown>; summary: string }).json = {
-        ...(result.evidence as { json: Record<string, unknown>; summary: string }).json,
+      (result.evidence).json = {
+        ...(result.evidence).json,
         summary,
         runner: {
           id: this.id,
