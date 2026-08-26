@@ -48,8 +48,11 @@ describe('AutopilotServer & Client SDK', () => {
         status: 'open',
         priority: 'medium',
         created_at: new Date().toISOString(),
+        tags: [],
+        metadata: {},
       },
     ];
+
 
 
     const result = await client.triage(tickets, 'test', 'test');

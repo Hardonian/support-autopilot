@@ -34,7 +34,16 @@ export default [
     },
   },
   {
+    files: ['scripts/**/*.mjs', '*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
     ignores: ['dist/**', 'node_modules/**', 'coverage/**', '**/*.test.ts', 'vitest.config.ts', 'src/ui/**'],
   },
 ];
+
 

@@ -18,8 +18,9 @@ describe('AgentRuntime', () => {
     status: 'open',
     priority: 'urgent',
     created_at: new Date().toISOString(),
+    tags: [],
+    metadata: {},
   };
-
 
   describe('SecurityScrubberAgent', () => {
     it('should scrub API keys, emails, phone numbers, and SSNs', () => {
@@ -59,10 +60,13 @@ describe('AgentRuntime', () => {
           id: 'chunk-1',
           source_id: 'docs/auth.md',
           content: 'To fix 401 Unauthorized errors, ensure your API keys have admin scope.',
-          token_count: 20,
-          chunk_index: 0,
+          start_line: 1,
+          end_line: 10,
+          heading_path: ['Authentication', 'Errors'],
+          metadata: {},
         },
       ];
+
 
       const { draft } = await DraftCopilotAgent.generateDraft(
         mockTicket,

@@ -17,8 +17,13 @@ describe('AutopilotMeshBridge', () => {
     id: 'TICK-BILLING-01',
     subject: 'Double charged on monthly subscription invoice',
     body: 'I was billed twice for $499 on my Visa. Please refund one immediately.',
+    status: 'open',
+    priority: 'high',
     created_at: new Date().toISOString(),
+    tags: [],
+    metadata: {},
   };
+
 
   const mockTriage: EnrichedTriageResult = {
     tenant_id: 'tenant-1',
