@@ -803,12 +803,13 @@ program
   .option('--json', 'Emit structured JSON output only')
   .action(function (this: Command, options: { reset?: boolean; json?: boolean }) {
     const opts = mergeGlobal(options as GlobalOptions, this);
-    if (options.reset) {
+    if (options.reset === true) {
       defaultModelRouter.resetCircuits();
       if (opts.json !== true) {
         console.log(chalk.green('✔ All model circuit breakers have been reset to CLOSED.'));
       }
     }
+
     const metrics = defaultModelRouter.getMetrics();
     outputResult(metrics, opts);
   });

@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import type { Ticket } from '../contracts/ticket.js';
 import type { EnrichedTriageResult } from '../ai/agent-runtime.js';
 import type { ModelUsage } from '../ai/model-router.js';
@@ -92,11 +91,12 @@ export class AutopilotMeshBridge {
     const timestamp = new Date().toISOString();
     let churnSignal: FinOpsChurnSignal | undefined;
     let billingAnomaly: FinOpsBillingAnomalySignal | undefined;
+    const primaryCategory = triage.topics[0]?.category ?? 'technical';
 
     // 1. Detect Churn Signal
-    if (triage.sentiment < -0.3 || triage.churnProbability > 0.3 || triage.priority === 'urgent') {
+    if (triage.sentiment < -0.3 || triage.churnProbability > 0.3 || triage.urgency === 'critical' || triage.suggested_priority === 'urgent') {
       let signalType: FinOpsChurnSignal['signalType'] = 'TICKET_SENTIMENT_NEGATIVE';
-      if (triage.category === 'billing') signalType = 'BILLING_DISPUTE';
+      if (primaryCategory === 'billing') signalType = 'BILLING_DISPUTE';
       else if (triage.urgencyScore >= 8) signalType = 'SLA_BREACH_RISK';
 
       churnSignal = {
@@ -110,7 +110,7 @@ export class AutopilotMeshBridge {
         subject: ticket.subject,
         timestamp,
         metadata: {
-          category: triage.category,
+          category: primaryCategory,
           urgencyScore: triage.urgencyScore,
           securityFlags: triage.securityFlags,
         },
@@ -120,7 +120,7 @@ export class AutopilotMeshBridge {
     }
 
     // 2. Detect Billing Anomaly for FinOps Ledger Reconciler
-    if (triage.category === 'billing') {
+    if (primaryCategory === 'billing') {
       const lower = `${ticket.subject} ${ticket.body}`.toLowerCase();
       let disputeType: FinOpsBillingAnomalySignal['disputeType'] = 'REFUND_REQUEST';
 
@@ -143,6 +143,7 @@ export class AutopilotMeshBridge {
 
     return { churnSignal, billingAnomaly };
   }
+
 
   /**
    * Export all accumulated Churn Risk Signals formatted for FinOps Autopilot
@@ -179,9 +180,7 @@ export class AutopilotMeshBridge {
 
     const modelBreakdown: Record<string, { tokens: number; costUSD: number; requests: number }> = {};
     for (const u of usages) {
-      if (!modelBreakdown[u.modelId]) {
-        modelBreakdown[u.modelId] = { tokens: 0, costUSD: 0, requests: 0 };
-      }
+      modelBreakdown[u.modelId] ??= { tokens: 0, costUSD: 0, requests: 0 };
       modelBreakdown[u.modelId].tokens += u.totalTokens;
       modelBreakdown[u.modelId].costUSD = Number((modelBreakdown[u.modelId].costUSD + u.costUSD).toFixed(5));
       modelBreakdown[u.modelId].requests++;

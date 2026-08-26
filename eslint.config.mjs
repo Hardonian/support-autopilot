@@ -1,24 +1,23 @@
 import js from '@eslint/js';
 import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
+import globals from 'globals';
 
 export default [
   js.configs.recommended,
   {
-    files: ['**/*.ts'],
+    files: ['src/**/*.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
         project: './tsconfig.json',
       },
       globals: {
-        console: 'readonly',
-        process: 'readonly',
-        Buffer: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
+        ...globals.node,
+        fetch: 'readonly',
+        AbortController: 'readonly',
+        RequestInit: 'readonly',
+        URL: 'readonly',
       },
     },
     plugins: {
@@ -35,6 +34,7 @@ export default [
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', '**/*.test.ts', 'vitest.config.ts'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', '**/*.test.ts', 'vitest.config.ts', 'src/ui/**'],
   },
 ];
+

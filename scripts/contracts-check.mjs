@@ -8,6 +8,7 @@
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const ROOT = resolve(import.meta.dirname, '..');
 
@@ -88,7 +89,7 @@ if (existsSync(catalogPath)) {
 // ---------------------------------------------------------------------------
 section('Zod schema validation');
 
-const sdk = await import(resolve(ROOT, 'dist/index.js'));
+const sdk = await import(pathToFileURL(resolve(ROOT, 'dist/index.js')).href);
 
 // Schema names and their corresponding Zod schema export names
 const schemaExports = [

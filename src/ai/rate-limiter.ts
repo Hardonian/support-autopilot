@@ -122,7 +122,7 @@ export class TenantRateLimiter {
     }
 
     // 4. Daily Budget Check
-    if (config.dailyBudgetUSD && state.dailySpendUSD >= config.dailyBudgetUSD) {
+    if (config.dailyBudgetUSD !== undefined && state.dailySpendUSD >= config.dailyBudgetUSD) {
       return {
         allowed: false,
         reason: 'DAILY_BUDGET_EXCEEDED',
@@ -136,7 +136,7 @@ export class TenantRateLimiter {
     }
 
     // 5. Monthly Budget Check
-    if (config.monthlyBudgetUSD && state.monthlySpendUSD >= config.monthlyBudgetUSD) {
+    if (config.monthlyBudgetUSD !== undefined && state.monthlySpendUSD >= config.monthlyBudgetUSD) {
       return {
         allowed: false,
         reason: 'MONTHLY_BUDGET_EXCEEDED',
@@ -150,8 +150,8 @@ export class TenantRateLimiter {
     }
 
     const budgetWarning =
-      (config.dailyBudgetUSD ? state.dailySpendUSD >= config.dailyBudgetUSD * 0.8 : false) ||
-      (config.monthlyBudgetUSD ? state.monthlySpendUSD >= config.monthlyBudgetUSD * 0.8 : false);
+      (config.dailyBudgetUSD !== undefined ? state.dailySpendUSD >= config.dailyBudgetUSD * 0.8 : false) ||
+      (config.monthlyBudgetUSD !== undefined ? state.monthlySpendUSD >= config.monthlyBudgetUSD * 0.8 : false);
 
     return {
       allowed: true,
@@ -173,13 +173,19 @@ export class TenantRateLimiter {
     }
 
     const state = this.getOrCreateState(tenantId);
+    const config = this.getTenantConfig(tenantId);
     const now = Date.now();
     state.requests.push(now);
     state.tokens.push({ timestamp: now, count: estimatedTokens });
     state.activeRequests++;
 
-    return decision;
+    return {
+      ...decision,
+      remainingRPM: Math.max(0, config.maxRequestsPerMinute - state.requests.length),
+      remainingTPM: Math.max(0, config.maxTokensPerMinute - this.sumTokens(state)),
+    };
   }
+
 
   /**
    * Release active concurrency slot and record actual cost
@@ -195,12 +201,13 @@ export class TenantRateLimiter {
    * Reset tenant limits (useful in testing)
    */
   public reset(tenantId?: string): void {
-    if (tenantId) {
+    if (tenantId !== undefined) {
       this.tenants.delete(tenantId);
     } else {
       this.tenants.clear();
     }
   }
+
 
   // ---------------------------------------------------------------------------
   // Internal Helpers

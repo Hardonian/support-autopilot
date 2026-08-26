@@ -83,9 +83,10 @@ export class AutopilotNetworkClient {
         'Content-Type': 'application/json',
         ...(init?.headers as Record<string, string>),
       };
-      if (this.apiKey) {
+      if (this.apiKey !== undefined) {
         headers['Authorization'] = `Bearer ${this.apiKey}`;
       }
+
 
       const res = await fetch(`${this.baseUrl}${path}`, {
         ...init,

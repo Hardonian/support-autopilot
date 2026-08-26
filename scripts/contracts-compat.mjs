@@ -22,10 +22,13 @@ function readJson(path) {
 }
 
 function assertEqual(actual, expected, label) {
-  if (actual !== expected) {
+  const normActual = typeof actual === 'string' ? actual.replace(/\r\n/g, '\n') : actual;
+  const normExpected = typeof expected === 'string' ? expected.replace(/\r\n/g, '\n') : expected;
+  if (normActual !== normExpected) {
     throw new Error(`Snapshot mismatch for ${label}`);
   }
 }
+
 
 function assertHashMatches(payload, label) {
   const { hash, ...rest } = payload;

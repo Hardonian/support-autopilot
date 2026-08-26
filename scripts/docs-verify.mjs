@@ -7,8 +7,9 @@ function run(command) {
 }
 
 function readFile(path) {
-  return readFileSync(path, 'utf-8');
+  return readFileSync(path, 'utf-8').replace(/\r\n/g, '\n');
 }
+
 
 function assertEqual(actualPath, expectedPath) {
   const actual = readFile(actualPath);

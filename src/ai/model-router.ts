@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { z } from 'zod';
 
 /**
  * Model Tier definition
@@ -274,7 +273,7 @@ export class ModelRouter {
    */
   public selectModel(ctx: RouteContext): ModelSpec {
     // 1. Force explicit model if requested and available
-    if (ctx.forceModel && MODEL_REGISTRY[ctx.forceModel]) {
+    if (ctx.forceModel !== undefined && MODEL_REGISTRY[ctx.forceModel] !== undefined) {
       const forced = MODEL_REGISTRY[ctx.forceModel];
       if (this.isModelAvailable(forced.id) || ctx.forceModel === 'deterministic-heuristic') {
         return forced;
@@ -282,9 +281,9 @@ export class ModelRouter {
     }
 
     // 2. Force explicit tier
-    if (ctx.forceTier) {
+    if (ctx.forceTier !== undefined) {
       const candidate = this.getHealthyModelInTier(ctx.forceTier);
-      if (candidate) return candidate;
+      if (candidate !== null) return candidate;
     }
 
     // 3. Dynamic Tier Evaluation
@@ -292,23 +291,24 @@ export class ModelRouter {
       ctx.priority === 'critical' ||
       ctx.customerTier === 'enterprise' ||
       ctx.taskType === 'kb-patch-proposal' ||
-      (ctx.promptLengthTokens && ctx.promptLengthTokens > 30_000);
+      (ctx.promptLengthTokens !== undefined && ctx.promptLengthTokens > 30_000);
 
     const targetTier: ModelTier = requiresHighReasoning ? 'reasoning' : 'economy';
 
     // 4. Try target tier
     const selected = this.getHealthyModelInTier(targetTier);
-    if (selected) return selected;
+    if (selected !== null) return selected;
 
     // 5. Fallback cascade: reasoning -> economy -> deterministic
     if (targetTier === 'reasoning') {
       const economyFallback = this.getHealthyModelInTier('economy');
-      if (economyFallback) return economyFallback;
+      if (economyFallback !== null) return economyFallback;
     }
 
     // 6. Ultimate fallback is always zero-cost deterministic heuristic
     return MODEL_REGISTRY['deterministic-heuristic'];
   }
+
 
   /**
    * Check if circuit breaker allows requests to this model
@@ -408,7 +408,7 @@ export class ModelRouter {
 
     // 2. Check Cache
     const cacheKey = this.generateCacheKey(options, model.id);
-    if (!options.bypassCache) {
+    if (options.bypassCache !== true) {
       const cachedEntry = this.promptCache.get(cacheKey);
       if (cachedEntry && Date.now() - cachedEntry.timestamp < cachedEntry.ttlMs) {
         cachedEntry.hits++;
@@ -417,7 +417,7 @@ export class ModelRouter {
         this.requestsByTier[cachedEntry.usage.tier]++;
         this.requestsByModel[cachedEntry.usage.modelId] = (this.requestsByModel[cachedEntry.usage.modelId] ?? 0) + 1;
 
-        return {
+        return Promise.resolve({
           content: cachedEntry.response,
           model,
           tier: model.tier,
@@ -428,7 +428,7 @@ export class ModelRouter {
           },
           cached: true,
           latencyMs: Date.now() - startTime,
-        };
+        });
       }
     }
 
@@ -437,7 +437,7 @@ export class ModelRouter {
 
     // 3. Execution (Live Provider or Deterministic Fallback)
     let content: string;
-    let promptTokens = promptLengthEst;
+    const promptTokens = promptLengthEst;
     let completionTokens = 0;
 
     try {
@@ -484,16 +484,17 @@ export class ModelRouter {
         hits: 0,
       });
 
-      return {
+      return Promise.resolve({
         content,
         model,
         tier: model.tier,
         usage,
         cached: false,
         latencyMs,
-      };
-    } catch (err) {
+      });
+    } catch {
       this.recordFailure(model.id);
+
 
       // Fallback to deterministic heuristic
       const fallbackModel = MODEL_REGISTRY['deterministic-heuristic'];
@@ -516,14 +517,14 @@ export class ModelRouter {
       this.requestsByTier['deterministic']++;
       this.requestsByModel[fallbackModel.id] = (this.requestsByModel[fallbackModel.id] ?? 0) + 1;
 
-      return {
+      return Promise.resolve({
         content,
         model: fallbackModel,
         tier: 'deterministic',
         usage,
         cached: false,
         latencyMs,
-      };
+      });
     }
   }
 
@@ -606,10 +607,11 @@ export class ModelRouter {
     hash.update(modelId);
     hash.update(options.taskType);
     hash.update(options.prompt);
-    if (options.systemPrompt) hash.update(options.systemPrompt);
-    if (options.priority) hash.update(options.priority);
+    if (options.systemPrompt !== undefined) hash.update(options.systemPrompt);
+    if (options.priority !== undefined) hash.update(options.priority);
     return hash.digest('hex');
   }
+
 
   private generateDeterministicResponse(options: ModelExecutionOptions): string {
     switch (options.taskType) {

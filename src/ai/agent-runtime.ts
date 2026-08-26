@@ -2,10 +2,10 @@ import { defaultModelRouter, ModelRouter, type ModelExecutionResult } from './mo
 import { defaultRateLimiter, TenantRateLimiter } from './rate-limiter.js';
 import type { Ticket } from '../contracts/ticket.js';
 import type { TriageResult } from '../contracts/triage-result.js';
-import type { KBSource, KBChunk } from '../contracts/kb-source.js';
-import type { DraftResponse } from '../contracts/draft-response.js';
+import type { KBChunk } from '../contracts/kb-source.js';
+import type { DraftResponse, Citation } from '../contracts/draft-response.js';
 import type { KBPatchProposal } from '../contracts/kb-patch.js';
-import { redactPII, hasPII } from '../utils/pii.js';
+import { redactPII } from '../utils/pii.js';
 
 export interface AgentExecutionContext {
   tenantId: string;
@@ -37,7 +37,7 @@ export class SecurityScrubberAgent {
     if (/\beyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\b/.test(text)) detectedTypes.push('JWT');
     if (/\b(?:password|passwd|secret)\s*[:=]\s*\S+/i.test(text)) detectedTypes.push('PASSWORD');
 
-    const cleanText = redactPII(text);
+    const cleanText = redactPII(text).redacted;
     return {
       cleanText,
       detectedTypes,
@@ -99,25 +99,30 @@ export class TriageAgent {
 
     rateLimiter.release(ctx.tenantId, execResult.usage.costUSD);
 
-    let category: TriageResult['category'] = 'technical';
-    let priority: TriageResult['priority'] = 'medium';
+    let category = 'technical';
+    let suggestedPriority: 'urgent' | 'high' | 'medium' | 'low' = 'medium';
 
     if (/bill|invoice|charge|refund/i.test(bodyLower)) category = 'billing';
-    else if (/access|login|password|auth|permission/i.test(bodyLower)) category = 'access';
-    else if (/feature|request|suggest/i.test(bodyLower)) category = 'feature_request';
+    else if (/access|login|password|auth|permission/i.test(bodyLower)) category = 'account';
+    else if (/feature|request|suggest/i.test(bodyLower)) category = 'feature-request';
 
-    if (urgencyScore >= 8) priority = 'urgent';
-    else if (urgencyScore >= 6) priority = 'high';
-    else if (urgencyScore <= 2) priority = 'low';
+    if (urgencyScore >= 8) suggestedPriority = 'urgent';
+    else if (urgencyScore >= 6) suggestedPriority = 'high';
+    else if (urgencyScore <= 2) suggestedPriority = 'low';
 
     const result: EnrichedTriageResult = {
+      tenant_id: ctx.tenantId,
+      project_id: ctx.projectId,
       ticket_id: ticket.id,
-      category,
-      priority,
-      confidence: 0.95,
-      suggested_action: urgencyScore >= 8 ? 'escalate' : 'draft_reply',
-      reasoning: `Categorized as ${category} (${priority}) based on sentiment score ${sentiment.toFixed(2)} and urgency score ${urgencyScore}/10.`,
-      tags: [category, priority, ...(ctx.customerTier ? [ctx.customerTier] : [])],
+      urgency: urgencyScore >= 8 ? 'critical' : urgencyScore >= 6 ? 'high' : urgencyScore <= 2 ? 'low' : 'medium',
+      topics: [{ category, confidence: 0.95, keywords: [category] }],
+      missing_info: [],
+      suggested_priority: suggestedPriority,
+      suggested_tags: [category, suggestedPriority, ...(ctx.customerTier ? [ctx.customerTier] : [])],
+      requires_kb_update: false,
+      requires_human_review: urgencyScore >= 8,
+      reasoning: `Categorized as ${category} (${suggestedPriority}) based on sentiment score ${sentiment.toFixed(2)} and urgency score ${urgencyScore}/10.`,
+      processed_at: new Date().toISOString(),
       sentiment,
       churnProbability: Number(churnProb.toFixed(2)),
       urgencyScore,
@@ -146,11 +151,10 @@ export class DraftCopilotAgent {
     rateLimiter.acquire(ctx.tenantId, 1200);
 
     const security = SecurityScrubberAgent.scrub(ticket.body);
-    const citations = kbChunks.slice(0, 3).map((chunk, index) => ({
+    const citations: Citation[] = kbChunks.slice(0, 3).map((chunk, index) => ({
       source_id: chunk.source_id,
       chunk_id: chunk.id,
-      title: `KB Citation [${index + 1}]`,
-      snippet: chunk.content.slice(0, 200),
+      excerpt: chunk.content.slice(0, 200),
       relevance_score: 0.92 - index * 0.05,
     }));
 
@@ -162,7 +166,7 @@ export class DraftCopilotAgent {
     const execResult = await router.execute({
       taskType: 'draft-response',
       prompt: `Ticket: ${ticket.subject}\nBody: ${security.cleanText}\nContext:\n${citationsText}`,
-      priority: triageResult.priority === 'urgent' ? 'critical' : 'medium',
+      priority: triageResult.urgency === 'critical' ? 'critical' : 'medium',
       customerTier: ctx.customerTier ?? 'starter',
       tenantId: ctx.tenantId,
     });
@@ -187,13 +191,17 @@ export class DraftCopilotAgent {
     }
 
     const draft: DraftResponse = {
+      tenant_id: ctx.tenantId,
+      project_id: ctx.projectId,
+      id: `draft-${Date.now()}`,
       ticket_id: ticket.id,
-      subject: `Re: ${ticket.subject}`,
       body,
       citations,
-      confidence: kbChunks.length > 0 ? 0.94 : 0.75,
-      tone: tone as DraftResponse['tone'],
-      missing_info: kbChunks.length === 0 ? ['No exact matching KB article found'] : [],
+      status: 'ready',
+      tone,
+      missing_claims: kbChunks.length === 0 ? ['No exact matching KB article found'] : [],
+      warnings: [],
+      created_at: new Date().toISOString(),
       disclaimer: 'This draft was generated with AI assistance and verified against internal documentation.',
     };
 
@@ -217,7 +225,8 @@ export class KBPatchSynthesizerAgent {
     rateLimiter.acquire(ctx.tenantId, 1500);
 
     const categoriesCount = triageResults.reduce<Record<string, number>>((acc, r) => {
-      acc[r.category] = (acc[r.category] ?? 0) + 1;
+      const cat = r.topics[0]?.category ?? 'technical';
+      acc[cat] = (acc[cat] ?? 0) + 1;
       return acc;
     }, {});
 
@@ -237,12 +246,15 @@ export class KBPatchSynthesizerAgent {
       id: `kb-patch-${Date.now()}`,
       tenant_id: ctx.tenantId,
       project_id: ctx.projectId,
-      title: `Troubleshooting Guide: Resolving ${topCategory.charAt(0).toUpperCase() + topCategory.slice(1)} Inquiries`,
-      target_document: `docs/${topCategory}-troubleshooting.md`,
+      type: 'faq_addition',
+      proposed_title: `Troubleshooting Guide: Resolving ${topCategory.charAt(0).toUpperCase() + topCategory.slice(1)} Inquiries`,
       proposed_content: `# ${topCategory.toUpperCase()} Troubleshooting & FAQ\n\nThis guide addresses common customer inquiries identified by Support Autopilot.\n\n## Quick Resolution Steps\n1. Check current service operational status.\n2. Validate authentication and API credentials.\n3. Refer to standard configuration parameters.\n`,
-      justification: `Automated analysis detected ${triageResults.length} tickets related to '${topCategory}' requiring repeated support intervention.`,
-      triggering_tickets: triageResults.map((t) => t.ticket_id),
+      diff: `--- a/docs/${topCategory}.md\n+++ b/docs/${topCategory}.md\n@@ -1,3 +1,6 @@\n+# ${topCategory} Updates\n+Automated patch generated.\n`,
+      related_ticket_ids: triageResults.map((t) => t.ticket_id),
+      triage_context: `Automated analysis detected ${triageResults.length} tickets related to '${topCategory}' requiring repeated support intervention.`,
+      status: 'pending_review',
       created_at: new Date().toISOString(),
+      reasoning: `High volume of recurring inquiries in ${topCategory}`,
     };
 
     return { proposal, execution: execResult };

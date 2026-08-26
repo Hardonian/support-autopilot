@@ -2,11 +2,11 @@ import { createServer, type IncomingMessage, type ServerResponse, type Server } 
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { defaultModelRouter } from '../ai/model-router.js';
-import { defaultRateLimiter } from '../ai/rate-limiter.js';
-import { TriageAgent, DraftCopilotAgent, KBPatchSynthesizerAgent, SecurityScrubberAgent } from '../ai/agent-runtime.js';
+import { TriageAgent, DraftCopilotAgent } from '../ai/agent-runtime.js';
 import { defaultMeshBridge } from './autopilot-mesh.js';
-import { triageBatch } from '../triage/index.js';
 import { validateTickets, type Ticket } from '../contracts/ticket.js';
+import type { TriageResult } from '../contracts/triage-result.js';
+import type { KBChunk } from '../contracts/kb-source.js';
 import { buildIndex, retrieveForTicket, ingestDirectory } from '../kb/index.js';
 
 export interface ServerOptions {
@@ -30,25 +30,27 @@ export class AutopilotServer {
 
   public async start(): Promise<string> {
     return new Promise((resolvePromise, reject) => {
-      this.server = createServer(async (req, res) => {
-        // Enable CORS
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      this.server = createServer((req, res) => {
+        void (async (): Promise<void> => {
+          // Enable CORS
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-        if (req.method === 'OPTIONS') {
-          res.writeHead(204);
-          res.end();
-          return;
-        }
+          if (req.method === 'OPTIONS') {
+            res.writeHead(204);
+            res.end();
+            return;
+          }
 
-        try {
-          await this.handleRequest(req, res);
-        } catch (error) {
-          const err = error as Error;
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Internal Server Error', message: err.message }));
-        }
+          try {
+            await this.handleRequest(req, res);
+          } catch (error) {
+            const err = error as Error;
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Internal Server Error', message: err.message }));
+          }
+        })();
       });
 
       this.server.listen(this.port, this.host, () => {
@@ -59,6 +61,7 @@ export class AutopilotServer {
       this.server.on('error', (err) => reject(err));
     });
   }
+
 
   public async stop(): Promise<void> {
     return new Promise((resolvePromise) => {
@@ -154,10 +157,17 @@ export class AutopilotServer {
       const tenantId = (body.tenantId as string) || 'default';
       const projectId = (body.projectId as string) || 'default';
       const ticket = body.ticket as Ticket;
-      const triage = body.triage;
       const tone = (body.tone as string) || 'friendly';
 
-      let kbChunks = [];
+      let triageResult: TriageResult;
+      if (body['triage'] !== undefined && typeof body['triage'] === 'object' && body['triage'] !== null) {
+        triageResult = body['triage'] as TriageResult;
+      } else {
+        const triaged = await TriageAgent.triageTicket(ticket, { tenantId, projectId });
+        triageResult = triaged.result;
+      }
+
+      let kbChunks: KBChunk[] = [];
       const kbDir = resolve('examples/kb');
       if (existsSync(kbDir)) {
         const sources = await ingestDirectory(kbDir, { tenantId, projectId });
@@ -168,7 +178,7 @@ export class AutopilotServer {
 
       const { draft, execution } = await DraftCopilotAgent.generateDraft(
         ticket,
-        triage,
+        triageResult,
         kbChunks,
         { tenantId, projectId },
         { tone }
@@ -181,10 +191,10 @@ export class AutopilotServer {
 
     // Static Web UI Serving
     if (req.method === 'GET') {
-      let filePath = join(this.uiDistDir, pathname === '/' ? 'index.html' : pathname);
+      const filePath = join(this.uiDistDir, pathname === '/' ? 'index.html' : pathname);
 
       if (existsSync(filePath)) {
-        const ext = filePath.split('.').pop() || '';
+        const ext = filePath.split('.').pop() ?? '';
         const contentTypeMap: Record<string, string> = {
           html: 'text/html',
           css: 'text/css',
@@ -193,7 +203,7 @@ export class AutopilotServer {
           png: 'image/png',
           svg: 'image/svg+xml',
         };
-        const contentType = contentTypeMap[ext] || 'text/plain';
+        const contentType = contentTypeMap[ext] ?? 'text/plain';
         const fileContent = readFileSync(filePath);
 
         res.writeHead(200, { 'Content-Type': contentType });
@@ -215,8 +225,9 @@ export class AutopilotServer {
       });
       req.on('end', () => {
         try {
-          resolvePromise(body ? JSON.parse(body) : {});
-        } catch (e) {
+          const parsed = (body.trim().length > 0 ? (JSON.parse(body) as unknown) : {}) as Record<string, unknown>;
+          resolvePromise(parsed);
+        } catch {
           reject(new Error('Invalid JSON request body'));
         }
       });
@@ -224,3 +235,5 @@ export class AutopilotServer {
     });
   }
 }
+
+

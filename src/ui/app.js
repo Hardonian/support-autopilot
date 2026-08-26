@@ -54,8 +54,9 @@ async function loadSampleTickets() {
       {
         id: 'TICK-101',
         subject: 'URGENT: API Authentication failing on production cluster',
-        body: 'All our requests are failing with 401 Unauthorized since 10am. My API key is AKIAIOSFODNN7EXAMPLE. Please help ASAP!',
+        body: 'All our requests are failing with 401 Unauthorized since 10am. My API key is MOCK_AUTH_KEY_998877. Please help ASAP!',
         created_at: new Date().toISOString(),
+
       },
       {
         id: 'TICK-102',
